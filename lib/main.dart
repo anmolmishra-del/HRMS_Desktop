@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/core/constants/app_images.dart';
 import 'package:hrms_desktop/core/services/api_service.dart';
-import 'package:hrms_desktop/features/home/cubit/home_cubit.dart';
+import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -65,7 +65,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => AttendanceCubit(ApiService())),
+        BlocProvider(create: (_) => AttendanceCubit()..loadInitialStatus()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

@@ -6,6 +6,10 @@ import 'package:hrms_desktop/features/home/presentation/home_page.dart';
 import 'package:hrms_desktop/features/main/cubit/main_cubit.dart';
 import 'package:hrms_desktop/features/main/state/main_state.dart';
 
+import 'package:hrms_desktop/features/payroll/payroll_screen.dart';
+import 'package:hrms_desktop/features/screens/ai_chat_bot_page.dart';
+import 'package:hrms_desktop/features/profile/profile_screen.dart';
+
 class MainPage extends StatelessWidget {
   const MainPage({super.key});
 
@@ -20,45 +24,10 @@ class MainPage extends StatelessWidget {
               index: state.selectedIndex,
               children: [
                 HomePage(),
-               // AttendanceScreen(shouldAnimate: state.selectedIndex == 1),
-                // PayrollScreen(), // My Pay
-                // chatPage(),
-                // ProfileScreen(), // Profile
-              ],
-            ),
-
-            bottomNavigationBar: NavigationBar(
-              backgroundColor: const Color.fromARGB(255, 242, 249, 250),
-              selectedIndex: state.selectedIndex,
-              indicatorColor: Color.fromARGB(255, 156, 204, 223),
-              onDestinationSelected: (index) {
-                context.read<MainCubit>().changeTab(index);
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.calendar_today_outlined),
-                  label: 'Attendance',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.payment_outlined),
-                  selectedIcon: Icon(Icons.payment),
-                  label: 'My Pay',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.chat_bubble_outline),
-                  selectedIcon: Icon(Icons.chat_bubble),
-                  label: 'Chat',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: 'Profile',
-                ),
+                AttendanceScreen(shouldAnimate: state.selectedIndex == 1),
+                const PayrollScreen(),
+                const AiChatBotPage(),
+                const ProfileScreen(),
               ],
             ),
           );
