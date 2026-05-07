@@ -8,16 +8,12 @@ class ScreenshotService {
 
     try {
 
-      // =========================
-      // DOCUMENT DIRECTORY
-      // =========================
+      
 
       final documentsDir =
           await getApplicationDocumentsDirectory();
 
-      // =========================
-      // CREATE FOLDER
-      // =========================
+     
 
       final screenshotDir = Directory(
         "${documentsDir.path}/HRMS_Screenshots",
@@ -30,9 +26,7 @@ class ScreenshotService {
         );
       }
 
-      // =========================
-      // FILE NAME
-      // =========================
+    
 
       final now = DateTime.now();
 
