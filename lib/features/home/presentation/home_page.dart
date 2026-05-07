@@ -12,6 +12,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+  
     return BlocProvider(
       create: (_) =>
           AttendanceCubit(ApiService())..loadTodayAttendance(), // API call
@@ -54,6 +55,7 @@ class HomePage extends StatelessWidget {
              
                 BlocBuilder<AttendanceCubit, AttendanceState>(
                   builder: (context, state) {
+                    
                     if (state.loading) {
                       return const Center(
                         child: ShimmerCard(),
