@@ -8,13 +8,11 @@ class ScreenshotService {
 
     try {
 
-      
-
+      // DOCUMENT DIRECTORY
       final documentsDir =
           await getApplicationDocumentsDirectory();
 
-     
-
+      // CREATE FOLDER
       final screenshotDir = Directory(
         "${documentsDir.path}/HRMS_Screenshots",
       );
@@ -26,15 +24,15 @@ class ScreenshotService {
         );
       }
 
-    
-
+      // FILE NAME
       final now = DateTime.now();
 
       final fileName =
           "${now.millisecondsSinceEpoch}.png";
 
+      // WINDOWS SAFE PATH
       final filePath =
-          "${screenshotDir.path}/$fileName";
+          "${screenshotDir.path}\\$fileName";
 
       // =========================
       // WINDOWS
@@ -42,11 +40,11 @@ class ScreenshotService {
 
       if (Platform.isWindows) {
 
-        final script = r'''
+        final script = """
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# FIX DPI SCALING
+# DPI FIX
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
@@ -59,39 +57,35 @@ public class DPI {
 
 [DPI]::SetProcessDPIAware()
 
-# FULL SCREEN BOUNDS
-$bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+# GET FULL SCREEN
+\$bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 
 # CREATE BITMAP
-$bitmap = New-Object System.Drawing.Bitmap `
-    $bounds.Width,
-    $bounds.Height
-
-# GRAPHICS
-$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-
-# HIGH QUALITY
-$graphics.InterpolationMode = `
-    [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-
-# CAPTURE FULL SCREEN
-$graphics.CopyFromScreen(
-    $bounds.X,
-    $bounds.Y,
-    0,
-    0,
-    $bounds.Size
+\$bitmap = New-Object System.Drawing.Bitmap(
+    \$bounds.Width,
+    \$bounds.Height
 )
 
-# SAVE IMAGE
-$bitmap.Save(
-    "''' + filePath + r'''",
+# GRAPHICS
+\$graphics = [System.Drawing.Graphics]::FromImage(\$bitmap)
+
+# CAPTURE ENTIRE SCREEN
+\$graphics.CopyFromScreen(
+    \$bounds.Location,
+    [System.Drawing.Point]::Empty,
+    \$bounds.Size
+)
+
+# SAVE PNG
+\$bitmap.Save(
+    "$filePath",
     [System.Drawing.Imaging.ImageFormat]::Png
 )
 
-$graphics.Dispose()
-$bitmap.Dispose()
-''';
+# CLEANUP
+\$graphics.Dispose()
+\$bitmap.Dispose()
+""";
 
         final result = await Process.run(
           'powershell.exe',
@@ -104,15 +98,12 @@ $bitmap.Dispose()
           ],
         );
 
-        print(
-          "Windows Exit Code: ${result.exitCode}",
-        );
+        print("Windows Exit Code:");
+        print(result.exitCode);
 
-        if (result.stderr != null &&
-            result.stderr.toString().isNotEmpty) {
+        print(result.stdout);
 
-          print(result.stderr);
-        }
+        print(result.stderr);
       }
 
       // =========================
@@ -121,26 +112,23 @@ $bitmap.Dispose()
 
       else if (Platform.isLinux) {
 
-        // INSTALL:
-        // sudo apt install gnome-screenshot
+        final linuxPath =
+            "${screenshotDir.path}/$fileName";
 
         final result = await Process.run(
           'gnome-screenshot',
           [
             '-f',
-            filePath,
+            linuxPath,
           ],
         );
 
-        print(
-          "Linux Exit Code: ${result.exitCode}",
-        );
+        print("Linux Exit Code:");
+        print(result.exitCode);
 
-        if (result.stderr != null &&
-            result.stderr.toString().isNotEmpty) {
+        print(result.stdout);
 
-          print(result.stderr);
-        }
+        print(result.stderr);
       }
 
       // =========================
@@ -151,16 +139,14 @@ $bitmap.Dispose()
 
       if (await file.exists()) {
 
-        print(
-          "Full screen screenshot saved:",
-        );
+        print("Full screenshot saved:");
 
         print(file.path);
 
         return file;
       }
 
-      print("Screenshot not found");
+      print("Screenshot file not found");
 
       return null;
 

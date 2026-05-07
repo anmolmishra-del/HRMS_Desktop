@@ -121,6 +121,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  equatable:
+    dependency: "direct main"
+    description:
+      name: equatable
+      sha256: "3e0141505477fd8ad55d6eb4e7776d3fe8430be8e497ccb1521370c3f21a3e2b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.8"
   fake_async:
     dependency: transitive
     description:
@@ -480,6 +488,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.3.0"
+  odoo_rpc:
+    dependency: "direct main"
+    description:
+      name: odoo_rpc
+      sha256: c243639c4d33efe74c3227d9f8d10fa41599aee922795d909c6a9da497b18481
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.1"
   package_info_plus:
     dependency: transitive
     description:
@@ -592,46 +608,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  screen_capturer:
-    dependency: "direct main"
-    description:
-      name: screen_capturer
-      sha256: "6607812bac01f2d3d98cad0808f5efbaa5824445998dc8567de5f05f24b45b95"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.3"
-  screen_capturer_linux:
-    dependency: transitive
-    description:
-      name: screen_capturer_linux
-      sha256: "3c87aeffcb6f744dd6f7d257c916e6caf23f06e85a976c2f319f9d4398151821"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.3"
-  screen_capturer_macos:
-    dependency: transitive
-    description:
-      name: screen_capturer_macos
-      sha256: "92b67dfbae3263d2228e2438b74dc9aae8cdc9ccacca152f0f8e8531ed5aff8b"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.2"
-  screen_capturer_platform_interface:
-    dependency: transitive
-    description:
-      name: screen_capturer_platform_interface
-      sha256: f53d3b955bb413cf4f9bd928c501297a3eb490a72b6a147c8384d4cd5feb872a
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.2"
-  screen_capturer_windows:
-    dependency: transitive
-    description:
-      name: screen_capturer_windows
-      sha256: "141542ff0ce1dae0df9c6625182c480c973c20282dc85f866fbc9215dcbbe04f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.2"
   screen_retriever:
     dependency: transitive
     description:
@@ -728,14 +704,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.1"
-  shell_executor:
-    dependency: transitive
-    description:
-      name: shell_executor
-      sha256: "9c024546fc96470a6b96be9902f0bc05347a017a7638ed8d93c77e8d77eb3c3c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.6"
   sky_engine:
     dependency: transitive
     description: flutter

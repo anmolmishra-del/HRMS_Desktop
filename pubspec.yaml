@@ -43,8 +43,10 @@ dependencies:
   device_info_plus: ^12.4.0
   geolocator: ^14.0.2
   geocoding: ^4.0.0
+ 
+  odoo_rpc: ^0.7.1
+  equatable: ^2.0.8
   window_manager: ^0.5.1
-  screen_capturer: ^0.2.3
 
 dev_dependencies:
   flutter_test:

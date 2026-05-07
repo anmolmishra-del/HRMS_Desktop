@@ -35,4 +35,15 @@ class AppColors {
 
   // 🌫 Shadow
   static const Color shadow = Colors.black12;
+
+  // 🎨 New UI Colors
+  static const Color indigo = Color(0xFF3F51B5);
+  static const Color brightBlue = Color(0xFF00B0FF);
+  static const Color red = Colors.red;
+  static const Color iconGrey = Colors.grey;
+  static const Color textDark = Color(0xFF2D3142);
+  static const Color loginBg = Color(0xFFF8F9FE);
+  static const Color grey = Colors.grey;
+  static const Color textGrey = Color(0xFF9E9E9E);
+  static const Color inputBg = Color(0xFFF5F5F5);
 }

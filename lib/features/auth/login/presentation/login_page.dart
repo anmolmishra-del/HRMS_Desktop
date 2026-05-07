@@ -1,149 +1,297 @@
 import 'package:flutter/material.dart';
+import 'package:hrms_desktop/core/widget/custome_textfield.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/core/constants/app_images.dart';
-import 'package:hrms_desktop/core/services/api_service.dart';
+import 'package:hrms_desktop/core/constants/app_colors.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
-import 'package:hrms_desktop/features/auth/login/repository/login_repository.dart';
 import 'package:hrms_desktop/features/auth/login/state/login_state.dart';
-
+import 'package:hrms_desktop/features/main/presentation/main_page.dart';
 
 class LoginScreen extends StatelessWidget {
-  LoginScreen({super.key});
-
-  final apiService = ApiService();
- final LoginRepository loginRepo = LoginRepository(ApiService());
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => LoginCubit(loginRepo), // ✅ FIXED (comma added)
-      child: BlocBuilder<LoginCubit, LoginState>(
-        builder: (context, state) {
-          final cubit = context.read<LoginCubit>();
-
-          return Scaffold(
-            resizeToAvoidBottomInset: false,
-            body: Stack(
-              children: [
-                /// BACKGROUND IMAGE
-                Positioned.fill(
-                  child: Image.asset(AppImages.image, fit: BoxFit.cover),
-                ),
-
-                Center(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-
-                        /// TITLE
-                        const Text(
-                          "Opzento HR",
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
+      create: (context) => LoginCubit(),
+      child: BlocListener<LoginCubit, LoginState>(
+        listener: (context, state) {
+          if (state.status == LoginStatus.success) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const MainPage()),
+            );
+          } else if (state.status == LoginStatus.failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage ?? 'Login failed'),
+                backgroundColor: AppColors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.loginBg,
+          body: Stack(
+            children: [
+              // 🎨 Top Decorative Header
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: MediaQuery.of(context).size.height * 0.45,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.indigo,
+                        AppColors.brightBlue,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(60),
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: -50,
+                        right: -50,
+                        child: CircleAvatar(
+                          radius: 100,
+                          backgroundColor: AppColors.white.withOpacity(0.05),
                         ),
-
-                        const SizedBox(height: 30),
-
-                        /// CARD
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            double maxWidth = constraints.maxWidth;
-
-                            return Container(
-                              width: maxWidth > 500 ? 360 : maxWidth * 0.88,
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.85),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.15),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 10),
+                      ),
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 20),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.white.withOpacity(.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Image.asset(AppImages.logo, width: 40, height: 40),
                                   ),
+                                  // Language selector removed as requested
                                 ],
                               ),
+                              const SizedBox(height: 40),
+                              const Text(
+                                "Welcome back",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Sign in to continue",
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-                              /// FORM
-                              child: Form(
-                                key: cubit.formKey,
-                                child: Column(
+              // 🚀 Main Login Card
+              Positioned.fill(
+                top: MediaQuery.of(context).size.height * 0.38,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(60),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.shadow,
+                        blurRadius: 20,
+                        offset: Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Login",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+
+                        // Username Field
+                        BlocBuilder<LoginCubit, LoginState>(
+                          buildWhen: (p, c) => p.usernameError != c.usernameError,
+                          builder: (context, state) {
+                            return CustomTextFormField(
+                              label: "Username",
+                              hintText: "Enter your username",
+                              prefixIcon: Icons.alternate_email_rounded,
+                              onChanged: (v) => context.read<LoginCubit>().onUsernameChanged(v),
+                              errorText: state.usernameError,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Password Field
+                        BlocBuilder<LoginCubit, LoginState>(
+                          buildWhen: (p, c) => p.obscurePassword != c.obscurePassword || p.passwordError != c.passwordError,
+                          builder: (context, state) {
+                            return CustomTextFormField(
+                              label: "Password",
+                              hintText: "Enter your password",
+                              prefixIcon: Icons.lock_outline_rounded,
+                              obscureText: state.obscurePassword,
+                              onChanged: (v) => context.read<LoginCubit>().onPasswordChanged(v),
+                              errorText: state.passwordError,
+                              suffixIcon: IconButton(
+                                icon: Icon(state.obscurePassword ? Icons.visibility_off : Icons.visibility, color: AppColors.iconGrey),
+                                onPressed: () => context.read<LoginCubit>().togglePasswordVisibility(),
+                              ),
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Forgot Password & Remember Me
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            BlocBuilder<LoginCubit, LoginState>(
+                              buildWhen: (p, c) => p.rememberMe != c.rememberMe,
+                              builder: (context, state) {
+                                return Row(
                                   children: [
-                                    /// MOBILE FIELD
-                                    TextFormField(
-                                      controller: cubit.mobileController,
-                                      keyboardType: TextInputType.number,
-                                      maxLength: 10,
-                                      onChanged: cubit.onMobileChanged,
-                                      decoration: InputDecoration(
-                                        hintText: "Enter Mobile Number",
-                                        prefixIcon: const Icon(Icons.phone),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Checkbox(
+                                        value: state.rememberMe,
+                                        activeColor: AppColors.brightBlue,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                        onChanged: (v) => context.read<LoginCubit>().toggleRememberMe(v!),
                                       ),
-                                      validator: cubit.validateMobile,
                                     ),
-
-                                    const SizedBox(height: 20),
-
-                                    /// BUTTON
-                                    state.status == LoginStatus.loading
-                                        ? const CircularProgressIndicator()
-                                        : SizedBox(
-                                            width: double.infinity,
-                                            height: 50,
-                                            child: ElevatedButton(
-                                              onPressed: state.isValidMobile
-                                                  ? () => cubit.sendOtp(context)
-                                                  : null,
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    state.isValidMobile
-                                                        ? Colors.blue
-                                                        : Colors.grey,
-                                              ),
-                                              child: const Text("Send OTP"),
-                                            ),
-                                          ),
+                                    const SizedBox(width: 8),
+                                    const Text("Remember me", style: TextStyle(color: AppColors.grey, fontSize: 14)),
                                   ],
+                                );
+                              },
+                            ),
+                            TextButton(
+                              onPressed: () {},
+                              child: const Text(
+                                "Forgot Password?",
+                                style: TextStyle(color: AppColors.brightBlue, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 40),
+
+                        // Login Button
+                        BlocBuilder<LoginCubit, LoginState>(
+                          builder: (context, state) {
+                            if (state.status == LoginStatus.loading) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            return SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: () => _handleLogin(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.indigo,
+                                  foregroundColor: Colors.white,
+                                  elevation: 4,
+                                  shadowColor: AppColors.indigo.withOpacity(0.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: const Text(
+                                  "Sign In",
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
                                 ),
                               ),
                             );
                           },
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 40),
 
-                        /// FOOTER
-                        const Text.rich(
-                          TextSpan(
-                            text: "Powered by ",
-                            style: TextStyle(color: Colors.grey),
-                            children: [
-                              TextSpan(
-                                text: "FastTrackProjects",
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Footer
+                        // const Center(
+                        //   child: Column(
+                        //     children: [
+                        //       Text(
+                        //         "POWERED BY",
+                        //         style: TextStyle(
+                        //           color: AppColors.textSecondary,
+                        //           fontSize: 12,
+                        //           fontWeight: FontWeight.bold,
+                        //           letterSpacing: 1.5,
+                        //         ),
+                        //       ),
+                        //       SizedBox(height: 4),
+                        //       Text(
+                        //         "FastTrackProjects",
+                        //         style: TextStyle(
+                        //           color: AppColors.textDark,
+                        //           fontSize: 14,
+                        //           fontWeight: FontWeight.bold,
+                        //         ),
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
                 ),
-              ],
-            ),
-          );
-        },
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  void _handleLogin(BuildContext context) {
+    context.read<LoginCubit>().login(
+          usernameErrorMsg: "Please enter your username",
+          passwordErrorMsg: "Please enter your password",
+        );
   }
 }

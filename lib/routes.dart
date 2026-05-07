@@ -9,7 +9,6 @@ import 'package:hrms_desktop/features/in_out/cubit/all_in_out_cubit.dart';
 import 'package:hrms_desktop/features/in_out/presentation/in_out_page.dart';
 import 'package:hrms_desktop/features/main/presentation/main_page.dart';
 import 'package:hrms_desktop/features/onboard/onboard_page.dart';
-import 'package:hrms_desktop/features/otp/otp_page.dart';
 import 'package:hrms_desktop/features/payroll/payroll_screen.dart';
 import 'package:hrms_desktop/features/profile/pages/change_password.dart';
 import 'package:hrms_desktop/features/profile/pages/holidays_calendar.dart';
@@ -29,7 +28,6 @@ class Routes {
   Routes._();
   static String onboarding = '/onboarding';
   static String login = '/login';
-  static String otp = '/otp';
   // static String admin = '/admin';
   static String main = '/main';
   static String leave = '/leave';
@@ -52,10 +50,9 @@ class Routes {
   static Map<String, WidgetBuilder> getAll() {
     return {
       onboarding: (c) => const OnboardingScreen(),
-      login: (c) => LoginScreen(),
-      otp: (c) => OtpScreen(),
+      login: (c) => const LoginScreen(),
       // admin: (c) => AdminPanelScreen(),
-      main: (c) => HomePage(),
+      main: (c) => const MainPage(),
       leave: (c) => LeavePage(),
       // myPay: (c) => PayrollScreen(),
    inOutReport: (c) => BlocProvider(
