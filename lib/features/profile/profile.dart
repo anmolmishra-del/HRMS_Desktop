@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class TopCurveSection extends StatelessWidget {
+  const TopCurveSection({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Stack(

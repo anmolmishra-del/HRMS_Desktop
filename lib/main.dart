@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/core/constants/app_images.dart';
-import 'package:hrms_desktop/core/services/api_service.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
+import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 import 'package:hrms_desktop/routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'package:hrms_desktop/core/constants/app_images.dart';
-import 'package:hrms_desktop/core/services/api_service.dart';
 
-import 'package:hrms_desktop/features/home/cubit/home_cubit.dart' hide AttendanceCubit;
 
-import 'package:hrms_desktop/routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,8 +70,7 @@ class _MyAppState extends State<MyApp>
   @override
   void onWindowClose() async {
 
-    // HIDE APP
-    // KEEP RUNNING IN BACKGROUND
+   
 
     await windowManager.hide();
 
@@ -89,6 +84,9 @@ class _MyAppState extends State<MyApp>
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => AttendanceCubit()..loadInitialStatus()),
+         BlocProvider(
+          create: (_) => LoginCubit(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

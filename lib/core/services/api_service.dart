@@ -22,10 +22,8 @@ class ApiService {
         onRequest: (options, handler) {
           final token = TokenService.getToken();
 
-          if (token != null) {
-            options.headers["Authorization"] = "Bearer $token";
-          }
-
+          options.headers["Authorization"] = "Bearer $token";
+        
           return handler.next(options);
         },
       ),

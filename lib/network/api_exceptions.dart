@@ -8,5 +8,5 @@ class UnauthorizedException extends ApiException {
 }
 
 class ServerException extends ApiException {
-  ServerException(String msg) : super(msg);
+  ServerException(super.msg);
 }

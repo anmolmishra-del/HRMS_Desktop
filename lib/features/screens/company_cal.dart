@@ -74,7 +74,7 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
                   const SizedBox(height: 15),
 
                   DropdownButtonFormField<String>(
-                    value: selectedType,
+                    initialValue: selectedType,
                     items: const [
                       DropdownMenuItem(value: "Event", child: Text("Event")),
                       DropdownMenuItem(

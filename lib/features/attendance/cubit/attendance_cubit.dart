@@ -150,7 +150,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       if (isCheckedIn) {
 
         String lastCheckInStr =
-            (checkInStatus as List)[0]
+            (checkInStatus)[0]
                 ['check_in'];
 
         debugPrint(

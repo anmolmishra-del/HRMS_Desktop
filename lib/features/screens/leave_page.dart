@@ -84,7 +84,7 @@ class _LeavePageState extends State<LeavePage> {
 
                       /// Leave Type Dropdown
                       DropdownButtonFormField<String>(
-                        value: selectedType,
+                        initialValue: selectedType,
                         items: leaveBalance.keys
                             .map(
                               (e) => DropdownMenuItem(value: e, child: Text(e)),

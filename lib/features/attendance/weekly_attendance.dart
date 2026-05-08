@@ -96,7 +96,7 @@ class _WeeklyAttendanceChartState extends State<WeeklyAttendanceChart> {
                           ),
                           duration: Duration(milliseconds: 500 + index * 120),
                           curve: Curves.easeOutCubic,
-                          builder: (_, value, __) {
+                          builder: (_, value, _) {
                             return Container(
                               width: 18,
                               height: value,

@@ -77,7 +77,7 @@ class _TaxPlannerPageState extends State<TaxPlannerPage> {
             _card(
               title: 'Tax Regime',
               child: DropdownButtonFormField(
-                value: regime,
+                initialValue: regime,
                 items: const [
                   DropdownMenuItem(value: 'Old', child: Text('Old Regime')),
                   DropdownMenuItem(value: 'New', child: Text('New Regime')),

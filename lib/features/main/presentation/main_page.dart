@@ -27,7 +27,7 @@ class MainPage extends StatelessWidget {
                 AttendanceScreen(shouldAnimate: state.selectedIndex == 1),
                 const PayrollScreen(),
                 const AiChatBotPage(),
-                const ProfileScreen(),
+                // const ProfileScreen(),
               ],
             ),
           );
