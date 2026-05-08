@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -11,687 +13,726 @@ import 'package:intl/intl.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
-import 'package:hrms_desktop/network/odoo_service.dart';
-
 import 'package:hrms_desktop/features/home/cubit/screenshot_service.dart';
+import 'package:hrms_desktop/network/odoo_service.dart';
 
 import 'attendance_state.dart';
 
-/// Cubit for managing attendance + screenshots
 class AttendanceCubit extends Cubit<AttendanceState> {
+  AttendanceCubit(this.navigatorKey) : super(const AttendanceState()) {
+    _listenActivityStream();
+    _startProductivityTimer();
+  }
+
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  static const MethodChannel _methodChannel = MethodChannel('hrms/activity');
+
+  static const EventChannel _eventChannel = EventChannel(
+    'hrms/activity_stream',
+  );
+
+  StreamSubscription? _activitySubscription;
+
+  late OdooService _odooService;
+
+  late int _empId;
+
+  bool _isInitialized = false;
+
+  String _cachedIp = "0.0.0.0";
+
+  Position? _cachedPosition;
 
   Timer? _ticker;
 
   Timer? _randomScreenshotTimer;
 
+  Timer? _autoCheckoutTimer;
+
   DateTime? _currentCheckInTime;
 
   bool _isTracking = false;
 
-  AttendanceCubit()
-      : super(const AttendanceState());
+  bool _dialogShown = false;
 
-  // =========================
-  // CLOSE
-  // =========================
+  bool _trackingPaused = false;
 
-  @override
-  Future<void> close() {
+  bool _isIdle = false;
 
-    _ticker?.cancel();
+  int _lastIdleSeconds = 0;
 
-    stopRandomScreenshots();
+  int _totalKeys = 0;
 
-    return super.close();
+  int _totalClicks = 0;
+
+  int _totalMoves = 0;
+
+  double _activeSeconds = 0;
+
+  double _idleSeconds = 0;
+
+
+int _minuteKeys = 0;
+
+int _minuteClicks = 0;
+
+int _minuteMoves = 0;
+
+int _minuteIdleSeconds = 0;
+
+Timer? _productivityTimer;
+
+double _smoothProductivity = 75;
+  void clearMessages() {
+    emit(state.copyWith(clearError: true, clearSuccess: true));
   }
 
-  // =========================
-  // LOAD INITIAL STATUS
-  // =========================
-
-  Future<void> loadInitialStatus() async {
-
-    emit(
-      state.copyWith(
-        status: AttendanceStatus.loading,
-      ),
-    );
-
-    final prefs = SharedPref();
-
-    final sobj =
-        await prefs.getObject('session');
-
-    var baseUrl =
-        await prefs.getString('baseUrl');
-
-    final employeeData =
-        await prefs.getObject(
-          'employee_data',
-        );
-
-    if (sobj == null ||
-        baseUrl == null ||
-        employeeData == null) {
-
-      emit(
-        state.copyWith(
-          status:
-              AttendanceStatus.failure,
-          errorMessage:
-              "Session expired",
-        ),
-      );
-
+  Future<void> initCubit() async {
+    if (_isInitialized) {
       return;
     }
 
-    final session = OdooSession.fromJson(
-      Map<String, dynamic>.from(sobj),
-    );
+    final prefs = SharedPref();
 
-    final odooService = OdooService(
-      baseUrl,
-      session: session,
-    );
+    final sobj = await prefs.getObject('session');
 
-    final rawEmpId =
-        employeeData['id'];
+    final baseUrl = await prefs.getString('baseUrl');
 
-    final int empId =
-        rawEmpId is int
-            ? rawEmpId
-            : int.parse(
-                rawEmpId.toString(),
-              );
+    final employeeData = await prefs.getObject('employee_data');
+
+    if (sobj == null || baseUrl == null || employeeData == null) {
+      throw Exception("Session expired");
+    }
+
+    final session = OdooSession.fromJson(Map<String, dynamic>.from(sobj));
+
+    _odooService = OdooService(baseUrl, session: session);
+
+    final rawEmpId = employeeData['id'];
+
+    _empId = rawEmpId is int ? rawEmpId : int.parse(rawEmpId.toString());
+
+    _cachedIp = await _getIpAddress();
+
+    _cachedPosition = await _getCurrentPosition();
+
+    _isInitialized = true;
+  }
+@override
+Future<void> close() {
+
+  _ticker?.cancel();
+
+  _randomScreenshotTimer
+      ?.cancel();
+
+  _autoCheckoutTimer
+      ?.cancel();
+
+  _productivityTimer
+      ?.cancel();
+
+  _activitySubscription
+      ?.cancel();
+
+  if (_isInitialized) {
+
+    _odooService.close();
+  }
+
+  return super.close();
+}
+  Future<void> loadInitialStatus() async {
+    await initCubit();
+
+    emit(state.copyWith(status: AttendanceStatus.loading));
 
     try {
-
-      debugPrint(
-        'AttendanceCubit: Loading initial status for empId=$empId',
-      );
-
-      final checkInStatus =
-          await odooService
-              .executeModelMethod(
+      final checkInStatus = await _odooService.executeModelMethod(
         'hr.attendance',
         'search_read',
         [],
         kwargs: {
           'domain': [
-            [
-              'employee_id',
-              '=',
-              empId,
-            ],
-            [
-              'check_in',
-              '!=',
-              false,
-            ],
-            [
-              'check_out',
-              '=',
-              false,
-            ]
+            ['employee_id', '=', _empId],
+            ['check_out', '=', false],
           ],
-          'fields': [
-            'id',
-            'check_in',
-          ],
+          'fields': ['id', 'check_in'],
+          'limit': 1,
         },
       );
 
       final isCheckedIn =
-          checkInStatus != null &&
-              (checkInStatus as List)
-                  .isNotEmpty;
+          checkInStatus != null && (checkInStatus as List).isNotEmpty;
 
       if (isCheckedIn) {
+        String lastCheckIn = (checkInStatus)[0]['check_in'];
 
-        String lastCheckInStr =
-            (checkInStatus)[0]
-                ['check_in'];
-
-        debugPrint(
-          'RAW check_in: $lastCheckInStr',
-        );
-
-        if (!lastCheckInStr
-            .endsWith('Z')) {
-
-          lastCheckInStr =
-              '${lastCheckInStr.replaceAll(' ', 'T')}Z';
+        if (!lastCheckIn.endsWith('Z')) {
+          lastCheckIn = '${lastCheckIn.replaceAll(' ', 'T')}Z';
         }
 
-        _currentCheckInTime =
-            DateTime.parse(
-              lastCheckInStr,
-            ).toLocal();
-
-      } else {
-
-        _currentCheckInTime = null;
+        _currentCheckInTime = DateTime.parse(lastCheckIn).toLocal();
       }
 
-      final baseHours =
-          await _fetchBaseHours(
-        odooService,
-        empId,
-      );
+      final baseHours = await _fetchBaseHours();
 
       emit(
         state.copyWith(
-          status:
-              AttendanceStatus.success,
+          status: AttendanceStatus.success,
+
           isCheckedIn: isCheckedIn,
+
           baseHours: baseHours,
-          todayHours: _formatHours(
-            baseHours +
-                _calculateCurrentSessionHours(),
-          ),
+
+          todayHours: _formatHours(baseHours),
+
+          productiveHours: productiveHours,
+
+          idleHours: _idleSeconds / 3600.0,
+
+          productivityPercent: productivityPercent,
         ),
       );
 
       _startTicker();
-
     } catch (e) {
+      emit(
+        state.copyWith(
+          status: AttendanceStatus.failure,
+
+          errorMessage: e.toString(),
+        ),
+      );
+    }
+  }
+void _listenActivityStream() {
+
+  _activitySubscription?.cancel();
+
+  _activitySubscription =
+      _eventChannel
+          .receiveBroadcastStream()
+          .listen(
+
+    (event) async {
+
+      try {
+
+        if (isClosed) {
+          return;
+        }
+
+        if (!state.isCheckedIn) {
+          return;
+        }
+
+        if (event == null) {
+          return;
+        }
+
+        if (event is! Map) {
+          return;
+        }
+
+        final int keys =
+            event['keys'] ?? 0;
+
+        final int clicks =
+            event['clicks'] ?? 0;
+
+        final int moves =
+            event['moves'] ?? 0;
+
+        final int idle =
+            event['idle'] ?? 0;
+
+        final bool currentlyIdle =
+            idle >= 60;
+
+        _totalKeys += keys;
+
+        _totalClicks += clicks;
+
+        _totalMoves += moves;
+
+        _minuteKeys += keys;
+
+        _minuteClicks += clicks;
+
+        _minuteMoves += moves;
+
+        if (currentlyIdle) {
+
+          _idleSeconds++;
+
+          _minuteIdleSeconds++;
+
+        } else {
+
+          _activeSeconds++;
+        }
+
+        if (currentlyIdle &&
+            !_isIdle) {
+
+          _isIdle = true;
+
+          _dialogShown = true;
+
+          _trackingPaused = true;
+
+          _showIdleWarning();
+        }
+
+        else if (!currentlyIdle &&
+            _isIdle) {
+
+          _isIdle = false;
+
+          _trackingPaused = false;
+
+          _dialogShown = false;
+
+          _autoCheckoutTimer
+              ?.cancel();
+
+          final context =
+              navigatorKey
+                  .currentState
+                  ?.overlay
+                  ?.context;
+
+          if (context != null &&
+              Navigator.canPop(
+                  context)) {
+
+            Navigator.of(
+              context,
+              rootNavigator: true,
+            ).pop();
+          }
+        }
+
+        print(
+          "KEYS => $_totalKeys",
+        );
+
+        print(
+          "CLICKS => $_totalClicks",
+        );
+
+        print(
+          "MOVES => $_totalMoves",
+        );
+
+        print(
+          "IDLE => $idle",
+        );
+
+      } catch (e) {
+
+        debugPrint(
+          "Tracker crash => $e",
+        );
+      }
+    },
+
+    onError: (e) {
 
       debugPrint(
-        'Load status error: $e',
+        "Tracker error => $e",
+      );
+    },
+  );
+}
+void _startProductivityTimer() {
+
+  _productivityTimer
+      ?.cancel();
+
+  _productivityTimer =
+      Timer.periodic(
+
+    const Duration(
+        minutes: 1),
+
+    (_) {
+
+      double activityScore = 0;
+
+      activityScore +=
+          (_minuteKeys * 0.02);
+
+      activityScore +=
+          (_minuteClicks * 0.03);
+
+      activityScore +=
+          (_minuteMoves * 0.001);
+
+      activityScore -=
+          (_minuteIdleSeconds * 0.5);
+
+      activityScore =
+          activityScore.clamp(
+              0,
+              100);
+
+      _smoothProductivity =
+
+          (_smoothProductivity *
+                  0.85) +
+
+              (activityScore *
+                  0.15);
+
+      _smoothProductivity =
+          _smoothProductivity
+              .clamp(
+                  0,
+                  100);
+
+      final productiveHours =
+          _activeSeconds /
+          3600.0;
+
+      final idleHours =
+          _idleSeconds /
+          3600.0;
+
+      print(
+        "====================",
+      );
+
+      print(
+        "PRODUCTIVITY => ${_smoothProductivity.toStringAsFixed(1)}%",
+      );
+
+      print(
+        "MINUTE KEYS => $_minuteKeys",
+      );
+
+      print(
+        "MINUTE CLICKS => $_minuteClicks",
+      );
+
+      print(
+        "MINUTE MOVES => $_minuteMoves",
+      );
+
+      print(
+        "MINUTE IDLE => $_minuteIdleSeconds",
+      );
+
+      print(
+        "====================",
       );
 
       emit(
         state.copyWith(
-          status:
-              AttendanceStatus.failure,
-          errorMessage:
-              e.toString(),
+
+          productiveHours:
+              productiveHours,
+
+          idleHours:
+              idleHours,
+
+          productivityPercent:
+              _smoothProductivity,
+
+          totalKeys:
+              _totalKeys,
+
+          totalClicks:
+              _totalClicks,
+
+          totalMoves:
+              _totalMoves,
         ),
       );
 
-    } finally {
+      _minuteKeys = 0;
 
-      odooService.close();
+      _minuteClicks = 0;
+
+      _minuteMoves = 0;
+
+      _minuteIdleSeconds = 0;
+    },
+  );
+}
+  void _showIdleWarning() {
+    final context = navigatorKey.currentState?.overlay?.context;
+
+    if (context == null) {
+      return;
     }
-  }
 
-  // =========================
-  // TICKER
-  // =========================
+    _autoCheckoutTimer?.cancel();
 
-  void _startTicker() {
+    _autoCheckoutTimer = Timer(const Duration(minutes: 1), () {
+      _performAutoCheckout();
+    });
 
-    _ticker?.cancel();
+    showDialog(
+      context: context,
 
-    _ticker = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) {
+      barrierDismissible: false,
 
-        final totalHours =
-            state.baseHours +
-                _calculateCurrentSessionHours();
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Inactivity detected"),
 
-        emit(
-          state.copyWith(
-            todayHours:
-                _formatHours(totalHours),
-            clearSuccess: true,
-            clearError: true,
-          ),
+          content: const Text("Are you still working?"),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+
+                _trackingPaused = false;
+
+                _dialogShown = false;
+
+                _isIdle = false;
+
+                _autoCheckoutTimer?.cancel();
+              },
+
+              child: const Text("Continue Working"),
+            ),
+          ],
         );
       },
     );
   }
 
-  // =========================
-  // CLEAR MESSAGES
-  // =========================
-
-  void clearMessages() {
-
-    emit(
-      state.copyWith(
-        clearSuccess: true,
-        clearError: true,
-      ),
-    );
+  Future<void> _performAutoCheckout() async {
+    await toggleAttendance(isAutoCheckout: true);
   }
 
-  // =========================
-  // CALCULATE HOURS
-  // =========================
+  void _startTicker() {
+    _ticker?.cancel();
+
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      final totalHours = state.baseHours + _calculateCurrentSessionHours();
+
+      final formatted = _formatHours(totalHours);
+
+      if (formatted == state.todayHours) {
+        return;
+      }
+
+      emit(state.copyWith(todayHours: formatted));
+    });
+  }
+
+  Future<void> toggleAttendance({bool isAutoCheckout = false}) async {
+    final currentlyCheckedIn = state.isCheckedIn;
+
+    emit(state.copyWith(status: AttendanceStatus.loading));
+
+    try {
+      await _odooService.mobileCheckInOut(
+        employeeId: _empId,
+        isCheckIn: currentlyCheckedIn,
+        longitude: _cachedPosition?.longitude ?? 0,
+        latitude: _cachedPosition?.latitude ?? 0,
+        ipAddress: _cachedIp,
+      );
+
+      final updatedState = !currentlyCheckedIn;
+
+      if (updatedState) {
+        _currentCheckInTime = DateTime.now();
+
+        startRandomScreenshots();
+
+
+_startProductivityTimer();
+        await _methodChannel.invokeMethod('startTracking');
+      } else {
+        stopRandomScreenshots();
+        _productivityTimer?.cancel();
+
+        await _methodChannel.invokeMethod('stopTracking');
+
+        _currentCheckInTime = null;
+
+        _dialogShown = false;
+
+        _trackingPaused = false;
+
+        _isIdle = false;
+
+        _totalKeys = 0;
+
+        _totalClicks = 0;
+
+        _totalMoves = 0;
+
+        _activeSeconds = 0;
+
+        _idleSeconds = 0;
+      }
+
+      emit(
+        state.copyWith(
+          status: AttendanceStatus.success,
+
+          isCheckedIn: updatedState,
+
+          successMessage: isAutoCheckout
+              ? "Auto checked out"
+              : updatedState
+              ? "Checked in successfully"
+              : "Checked out successfully",
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: AttendanceStatus.failure,
+
+          errorMessage: e.toString(),
+        ),
+      );
+    }
+  }
 
   double _calculateCurrentSessionHours() {
-
     if (_currentCheckInTime == null) {
       return 0.0;
     }
 
-    final duration =
-        DateTime.now().difference(
-      _currentCheckInTime!,
-    );
+    final duration = DateTime.now().difference(_currentCheckInTime!);
 
     return duration.inSeconds / 3600.0;
   }
 
-  String _formatHours(
-    double hours,
-  ) {
-
-    return NumberFormat(
-      "0.00",
-    ).format(hours);
+  String _formatHours(double hours) {
+    return NumberFormat("0.00").format(hours);
   }
 
-  // =========================
-  // FETCH BASE HOURS
-  // =========================
+  double get productiveHours {
+    return _activeSeconds / 3600.0;
+  }
 
-  Future<double> _fetchBaseHours(
-    OdooService odooService,
-    int empId,
-  ) async {
+ double get productivityPercent {
 
+  return _smoothProductivity;
+}
+  Future<double> _fetchBaseHours() async {
     DateTime now = DateTime.now();
 
-    DateTime todayStartLocal =
-        DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    DateTime start = DateTime(now.year, now.month, now.day);
 
-    DateTime todayEndLocal =
-        todayStartLocal.add(
-      const Duration(days: 1),
-    );
+    DateTime end = start.add(const Duration(days: 1));
 
-    final formatter = DateFormat(
-      'yyyy-MM-dd HH:mm:ss',
-    );
+    final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
 
-    final fromStr = formatter.format(
-      todayStartLocal.toUtc(),
-    );
-
-    final toStr = formatter.format(
-      todayEndLocal.toUtc(),
-    );
-
-    final finishedRecords =
-        await odooService
-            .executeModelMethod(
+    final records = await _odooService.executeModelMethod(
       'hr.attendance',
       'search_read',
       [],
       kwargs: {
         'domain': [
-          [
-            'employee_id',
-            '=',
-            empId,
-          ],
-          [
-            'check_in',
-            '>=',
-            fromStr,
-          ],
-          [
-            'check_in',
-            '<',
-            toStr,
-          ],
-          [
-            'check_out',
-            '!=',
-            false,
-          ],
+          ['employee_id', '=', _empId],
+          ['check_in', '>=', formatter.format(start.toUtc())],
+          ['check_in', '<', formatter.format(end.toUtc())],
+          ['check_out', '!=', false],
         ],
-        'fields': [
-          'worked_hours',
-        ],
+        'fields': ['worked_hours'],
       },
     );
 
-    double total = 0.0;
+    double total = 0;
 
-    if (finishedRecords != null) {
-
-      for (var record
-          in (finishedRecords as List)) {
-
-        total +=
-            (record['worked_hours'] ??
-                    0.0)
-                .toDouble();
+    if (records != null) {
+      for (var item in (records as List)) {
+        total += (item['worked_hours'] ?? 0.0).toDouble();
       }
     }
 
     return total;
   }
 
-  // =========================
-  // TOGGLE ATTENDANCE
-  // =========================
-
-  Future<void> toggleAttendance() async {
-
-    final currentlyCheckedIn =
-        state.isCheckedIn;
-
-    _ticker?.cancel();
-
-    emit(
-      state.copyWith(
-        status: AttendanceStatus.loading,
-      ),
-    );
-
-    final prefs = SharedPref();
-
-    final sobj =
-        await prefs.getObject('session');
-
-    var baseUrl =
-        await prefs.getString('baseUrl');
-
-    final employeeData =
-        await prefs.getObject(
-          'employee_data',
-        );
-
-    if (baseUrl == null ||
-        sobj == null ||
-        employeeData == null) {
-
-      emit(
-        state.copyWith(
-          status:
-              AttendanceStatus.failure,
-          errorMessage:
-              "Session info missing",
-        ),
-      );
-
+  void startRandomScreenshots() {
+    if (_isTracking) {
       return;
     }
 
-    final session = OdooSession.fromJson(
-      Map<String, dynamic>.from(sobj),
-    );
-
-    final odooService = OdooService(
-      baseUrl,
-      session: session,
-    );
-
-    final rawEmpId =
-        employeeData['id'];
-
-    final int empId =
-        rawEmpId is int
-            ? rawEmpId
-            : int.parse(
-                rawEmpId.toString(),
-              );
-
-    try {
-
-      final results = await Future.wait([
-
-        _getIpAddress().timeout(
-          const Duration(seconds: 5),
-          onTimeout: () => "0.0.0.0",
-        ),
-
-        _getCurrentPosition().timeout(
-          const Duration(seconds: 5),
-          onTimeout: () => null,
-        ),
-      ]);
-
-      final String ipAddress =
-          results[0] as String;
-
-      final Position? position =
-          results[1] as Position?;
-
-      await odooService.mobileCheckInOut(
-        employeeId: empId,
-        isCheckIn:
-            currentlyCheckedIn,
-        longitude:
-            position?.longitude ?? 0,
-        latitude:
-            position?.latitude ?? 0,
-        ipAddress: ipAddress,
-      );
-
-      odooService.close();
-
-      await loadInitialStatus();
-
-      // =========================
-      // START / STOP SCREENSHOTS
-      // =========================
-
-      if (!currentlyCheckedIn) {
-
-        // USER CHECKED IN
-
-        startRandomScreenshots();
-
-      } else {
-
-        // USER CHECKED OUT
-
-        stopRandomScreenshots();
-      }
-
-      final successMsg =
-          currentlyCheckedIn
-              ? "Checked out successfully"
-              : "Checked in successfully";
-
-      emit(
-        state.copyWith(
-          successMessage:
-              successMsg,
-        ),
-      );
-
-    } catch (e) {
-
-      debugPrint(
-        'Attendance toggle error: $e',
-      );
-
-      emit(
-        state.copyWith(
-          status:
-              AttendanceStatus.failure,
-          errorMessage:
-              e.toString(),
-        ),
-      );
-
-    } finally {
-
-      odooService.close();
-    }
-  }
-
-  // =========================
-  // RANDOM SCREENSHOTS
-  // =========================
-
-  void startRandomScreenshots() {
-
-    if (_isTracking) return;
-
     _isTracking = true;
-
-    print(
-      "Random screenshot tracking started",
-    );
 
     _scheduleNextScreenshot();
   }
 
   void stopRandomScreenshots() {
-
     _isTracking = false;
 
     _randomScreenshotTimer?.cancel();
-
-    print(
-      "Random screenshot tracking stopped",
-    );
   }
 
   void _scheduleNextScreenshot() {
+    if (!_isTracking) {
+      return;
+    }
 
-    if (!_isTracking) return;
+    final randomSeconds = Random().nextInt(10) + 10;
 
-    final randomSeconds =
-        Random().nextInt(10) + 10;
+    _randomScreenshotTimer = Timer(Duration(seconds: randomSeconds), () async {
+      await captureAndUpload();
 
-    print(
-      "Next screenshot in $randomSeconds seconds",
-    );
-
-    _randomScreenshotTimer?.cancel();
-
-    _randomScreenshotTimer = Timer(
-      Duration(
-        seconds: randomSeconds,
-      ),
-      () async {
-
-        await captureAndUpload();
-
-        if (_isTracking) {
-
-          _scheduleNextScreenshot();
-        }
-      },
-    );
+      if (_isTracking) {
+        _scheduleNextScreenshot();
+      }
+    });
   }
 
   Future<void> captureAndUpload() async {
-
     try {
-
-      print("Taking screenshot...");
-
-      final file =
-          await ScreenshotService
-              .captureScreen();
+      final file = await ScreenshotService.captureScreen();
 
       if (file == null) {
-
-        print("Screenshot failed");
-
         return;
       }
 
-      print(
-        "Screenshot captured: ${file.path}",
-      );
-
+      debugPrint("Screenshot => ${file.path}");
     } catch (e) {
-
-      print(
-        "Screenshot error: $e",
-      );
+      debugPrint("Screenshot error => $e");
     }
   }
 
-  // =========================
-  // IP ADDRESS
-  // =========================
-
   Future<String> _getIpAddress() async {
-
     try {
-
       final response = await http.get(
-        Uri.parse(
-          'https://api.ipify.org?format=json',
-        ),
-      ).timeout(
-        const Duration(seconds: 4),
+        Uri.parse('https://api.ipify.org?format=json'),
       );
 
       if (response.statusCode == 200) {
-
-        return jsonDecode(
-          response.body,
-        )['ip'];
+        return jsonDecode(response.body)['ip'];
       }
-
-    } catch (e) {
-
-      debugPrint(
-        'IP fetch failed',
-      );
-    }
+    } catch (_) {}
 
     return "0.0.0.0";
   }
 
-  // =========================
-  // LOCATION
-  // =========================
-
   Future<Position?> _getCurrentPosition() async {
-
     try {
+      LocationPermission permission = await Geolocator.checkPermission();
 
-      LocationPermission permission =
-          await Geolocator
-              .checkPermission();
-
-      if (permission ==
-          LocationPermission.denied) {
-
-        permission =
-            await Geolocator
-                .requestPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
       }
 
-      if (permission ==
-              LocationPermission
-                  .whileInUse ||
-          permission ==
-              LocationPermission
-                  .always) {
-
-        final lastKnown =
-            await Geolocator
-                .getLastKnownPosition();
-
-        if (lastKnown != null) {
-          return lastKnown;
-        }
-
-        return await Geolocator
-            .getCurrentPosition(
-          desiredAccuracy:
-              LocationAccuracy.medium,
-          timeLimit:
-              const Duration(seconds: 5),
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        return await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
         );
       }
-
-    } catch (e) {
-
-      debugPrint(
-        'Location error: $e',
-      );
-    }
+    } catch (_) {}
 
     return null;
   }

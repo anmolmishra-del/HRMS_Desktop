@@ -366,17 +366,37 @@ class DashboardContent extends StatelessWidget {
                 const SizedBox(width: 20),
 
                 /// PRODUCTIVITY
-                Expanded(
-                  child: _statCard(
-                    title: "Productivity",
+                /// PRODUCTIVITY
+Expanded(
 
-                    value: "78%",
+  child: BlocBuilder<
+      AttendanceCubit,
+      AttendanceState>(
 
-                    icon: Icons.pie_chart_rounded,
+    builder: (context, state) {
 
-                    color: Colors.deepPurple,
-                  ),
-                ),
+      final productivity =
+          state
+              .productivityPercent
+              .toStringAsFixed(1);
+
+      return _statCard(
+
+        title: "Productivity",
+
+        value:
+            "$productivity%",
+
+        icon:
+            Icons
+                .pie_chart_rounded,
+
+        color:
+            Colors.deepPurple,
+      );
+    },
+  ),
+),
 
                 const SizedBox(width: 20),
 
