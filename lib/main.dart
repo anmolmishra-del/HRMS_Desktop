@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -80,6 +81,9 @@ class _MyAppState extends State<MyApp> with WindowListener {
       providers: [
         BlocProvider(
           create: (_) => AttendanceCubit(navigatorKey)..loadInitialStatus(),
+        ),
+         BlocProvider<LoginCubit>(
+          create: (_) => LoginCubit(),
         ),
       ],
 

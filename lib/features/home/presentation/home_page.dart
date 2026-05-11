@@ -214,17 +214,18 @@ class _HomePageState extends State<HomePage> {
                                     Spacer(),
                                     IconButton(
                                       onPressed: () async {
+                                        final navigator = Navigator.of(context);
+
                                         await context
                                             .read<LoginCubit>()
                                             .logout();
 
-                                        if (context.mounted) {
-                                          Navigator.pushNamedAndRemoveUntil(
-                                            context,
-                                            '/login',
-                                            (route) => false,
-                                          );
-                                        }
+                                        if (!context.mounted) return;
+
+                                        navigator.pushNamedAndRemoveUntil(
+                                          '/login',
+                                          (route) => false,
+                                        );
                                       },
 
                                       icon: const Icon(
@@ -367,36 +368,24 @@ class DashboardContent extends StatelessWidget {
 
                 /// PRODUCTIVITY
                 /// PRODUCTIVITY
-Expanded(
+                Expanded(
+                  child: BlocBuilder<AttendanceCubit, AttendanceState>(
+                    builder: (context, state) {
+                      final productivity = state.productivityPercent
+                          .toStringAsFixed(1);
 
-  child: BlocBuilder<
-      AttendanceCubit,
-      AttendanceState>(
+                      return _statCard(
+                        title: "Productivity",
 
-    builder: (context, state) {
+                        value: "$productivity%",
 
-      final productivity =
-          state
-              .productivityPercent
-              .toStringAsFixed(1);
+                        icon: Icons.pie_chart_rounded,
 
-      return _statCard(
-
-        title: "Productivity",
-
-        value:
-            "$productivity%",
-
-        icon:
-            Icons
-                .pie_chart_rounded,
-
-        color:
-            Colors.deepPurple,
-      );
-    },
-  ),
-),
+                        color: Colors.deepPurple,
+                      );
+                    },
+                  ),
+                ),
 
                 const SizedBox(width: 20),
 
@@ -575,7 +564,6 @@ Expanded(
     );
   }
 }
-
 
 class AttendancePage extends StatelessWidget {
   const AttendancePage({super.key});

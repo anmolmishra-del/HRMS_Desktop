@@ -64,8 +64,7 @@ LRESULT CALLBACK KeyboardProc(
 
   if (nCode >= 0) {
 
-    if (wParam ==
-        WM_KEYDOWN) {
+    if (wParam == WM_KEYDOWN) {
 
       keyboardCount++;
     }
@@ -87,19 +86,72 @@ LRESULT CALLBACK MouseProc(
     WPARAM wParam,
     LPARAM lParam) {
 
+  static POINT lastPoint = {0, 0};
+
+  static bool initialized = false;
+
   if (nCode >= 0) {
+
+    MSLLHOOKSTRUCT* mouse =
+        (MSLLHOOKSTRUCT*)lParam;
 
     switch (wParam) {
 
-      case WM_MOUSEMOVE:
+      /// =====================================
+      /// MOUSE MOVE
+      /// =====================================
 
-        mouseMoveCount++;
+      case WM_MOUSEMOVE: {
+
+        if (!initialized) {
+
+          lastPoint = mouse->pt;
+
+          initialized = true;
+        }
+
+        int dx =
+            abs(mouse->pt.x - lastPoint.x);
+
+        int dy =
+            abs(mouse->pt.y - lastPoint.y);
+
+        // Ignore tiny fake movement
+        if (dx > 2 || dy > 2) {
+
+          mouseMoveCount++;
+
+          lastPoint = mouse->pt;
+        }
 
         break;
+      }
+
+      /// =====================================
+      /// LEFT CLICK
+      /// =====================================
 
       case WM_LBUTTONDOWN:
 
+        mouseClickCount++;
+
+        break;
+
+      /// =====================================
+      /// RIGHT CLICK
+      /// =====================================
+
       case WM_RBUTTONDOWN:
+
+        mouseClickCount++;
+
+        break;
+
+      /// =====================================
+      /// MIDDLE CLICK
+      /// =====================================
+
+      case WM_MBUTTONDOWN:
 
         mouseClickCount++;
 
@@ -131,8 +183,7 @@ int GetIdleTime() {
       GetTickCount64();
 
   return static_cast<int>(
-      (tick - lii.dwTime) /
-      1000);
+      (tick - lii.dwTime) / 1000);
 }
 
 /// =====================================================
@@ -141,21 +192,17 @@ int GetIdleTime() {
 
 void StopTracking() {
 
-  trackingStarted =
-      false;
+  trackingStarted = false;
 
-  if (keyboardHook !=
-      NULL) {
+  if (keyboardHook != NULL) {
 
     UnhookWindowsHookEx(
         keyboardHook);
 
-    keyboardHook =
-        NULL;
+    keyboardHook = NULL;
   }
 
-  if (mouseHook !=
-      NULL) {
+  if (mouseHook != NULL) {
 
     UnhookWindowsHookEx(
         mouseHook);
@@ -181,8 +228,7 @@ void StartTracking() {
     return;
   }
 
-  trackingStarted =
-      true;
+  trackingStarted = true;
 
   keyboardHook =
       SetWindowsHookEx(
@@ -203,8 +249,7 @@ void StartTracking() {
 
   std::thread([] {
 
-    while (
-        trackingStarted) {
+    while (trackingStarted) {
 
       if (g_event_sink) {
 
@@ -239,8 +284,28 @@ void StartTracking() {
                 data));
 
         printf(
+            "KEYS => %d\n",
+            keyboardCount);
+
+        printf(
+            "CLICKS => %d\n",
+            mouseClickCount);
+
+        printf(
+            "MOVES => %d\n",
+            mouseMoveCount);
+
+        printf(
             "IDLE => %d\n",
             GetIdleTime());
+
+        /// RESET COUNTERS EVERY SECOND
+
+        keyboardCount = 0;
+
+        mouseClickCount = 0;
+
+        mouseMoveCount = 0;
       }
 
       std::this_thread::
