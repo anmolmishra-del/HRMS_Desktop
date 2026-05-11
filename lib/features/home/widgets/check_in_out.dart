@@ -82,10 +82,10 @@ class CheckInOutCard extends StatelessWidget {
                           children: [
                             const Text("Date", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                             const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => Navigator.pushNamed(context, Routes.inOutReport),
-                              child: const Icon(Icons.history_rounded, size: 18, color: AppColors.primaryPurple),
-                            ),
+                            // GestureDetector(
+                            //   onTap: () => Navigator.pushNamed(context, Routes.inOutReport),
+                            //   child: const Icon(Icons.history_rounded, size: 18, color: AppColors.primaryPurple),
+                            // ),
                           ],
                         ),
                         const SizedBox(height: 2),
