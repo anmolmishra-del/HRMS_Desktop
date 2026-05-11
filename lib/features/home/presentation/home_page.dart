@@ -8,8 +8,12 @@ import 'package:hrms_desktop/features/home/widgets/check_in_out.dart';
 import 'package:hrms_desktop/core/widget/custom_shimer_card.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_state.dart';
+import 'package:hrms_desktop/features/in_out/presentation/in_out_page.dart';
 import 'package:intl/intl.dart';
 import 'package:hrms_desktop/core/constants/app_colors.dart';
+import 'package:hrms_desktop/features/attendance/attendance_page.dart';
+import 'package:hrms_desktop/features/home/presentation/productivity_page.dart';
+import 'package:hrms_desktop/features/home/presentation/settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -582,43 +586,7 @@ class AttendancePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        "Attendance Page",
-
-        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-
-class ProductivityPage extends StatelessWidget {
-  const ProductivityPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        "Productivity Page",
-
-        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        "Settings Page",
-
-        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-      ),
-    );
+    return const InOutReportPage();
   }
 }
 
