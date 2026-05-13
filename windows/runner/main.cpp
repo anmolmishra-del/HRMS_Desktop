@@ -369,7 +369,7 @@ int APIENTRY wWinMain(
       720);
 
   if (!window.Create(
-          L"hrms_desktop",
+          L"Opzento",
           origin,
           size)) {
 

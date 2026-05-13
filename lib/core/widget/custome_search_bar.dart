@@ -30,7 +30,7 @@ class CustomSearchBar extends StatelessWidget {
       padding: padding,
       child: Container(
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(borderRadius),
           boxShadow: [
             BoxShadow(
@@ -46,9 +46,9 @@ class CustomSearchBar extends StatelessWidget {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hintText,
-            prefixIcon: Icon(prefixIcon, color: iconColor),
+            prefixIcon: Icon(prefixIcon, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
             filled: true,
-            fillColor: backgroundColor,
+            fillColor: Theme.of(context).colorScheme.surface,
             contentPadding: const EdgeInsets.symmetric(
               vertical: 0,
               horizontal: 16,

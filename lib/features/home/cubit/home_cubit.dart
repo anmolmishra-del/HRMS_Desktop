@@ -26,9 +26,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
   bool _isTracking = false;
 
-  // =========================
-  // LOAD TODAY ATTENDANCE
-  // =========================
+
 
   Future<void> loadTodayAttendance() async {
     
@@ -106,9 +104,6 @@ class AttendanceCubit extends Cubit<AttendanceState> {
     }
   }
 
-  // =========================
-  // CHECK IN
-  // =========================
 
   Future<void> checkIn() async {
     emit(
@@ -150,7 +145,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
         },
       );
 
-      // START RANDOM SCREENSHOTS
+     
       startRandomScreenshots();
 
       await loadTodayAttendance();
@@ -190,9 +185,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
     }
   }
 
-  // =========================
-  // CHECK OUT
-  // =========================
+
 
   Future<void> checkOut() async {
     emit(
@@ -234,7 +227,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
         },
       );
 
-      // STOP RANDOM SCREENSHOTS
+    
       stopRandomScreenshots();
 
       await loadTodayAttendance();
@@ -272,9 +265,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
     }
   }
 
-  // =========================
-  // RANDOM SCREENSHOTS
-  // =========================
+
 
   void startRandomScreenshots() {
     if (_isTracking) return;
@@ -315,6 +306,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
         await captureAndUpload();
 
         // REPEAT AGAIN
+        print("REPEAT AGAIN///////////////////////////////////////");
 
         if (_isTracking) {
           _scheduleNextScreenshot();

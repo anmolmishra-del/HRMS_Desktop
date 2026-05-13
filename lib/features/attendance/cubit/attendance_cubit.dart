@@ -1,16 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
+import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:hrms_desktop/core/services/app_usage_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
+import 'package:win32/win32.dart';
 
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/features/home/cubit/screenshot_service.dart';
@@ -19,10 +23,7 @@ import 'package:hrms_desktop/network/odoo_service.dart';
 import 'attendance_state.dart';
 
 class AttendanceCubit extends Cubit<AttendanceState> {
-  AttendanceCubit(this.navigatorKey) : super(const AttendanceState()) {
-    _listenActivityStream();
-    _startProductivityTimer();
-  }
+  AttendanceCubit(this.navigatorKey) : super(const AttendanceState());
 
   final GlobalKey<NavigatorState> navigatorKey;
 
@@ -48,6 +49,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
   Timer? _randomScreenshotTimer;
 
+  Timer? _productivityTimer;
+
   Timer? _autoCheckoutTimer;
 
   DateTime? _currentCheckInTime;
@@ -72,21 +75,27 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
   double _idleSeconds = 0;
 
+  int _minuteKeys = 0;
 
-int _minuteKeys = 0;
+  int _minuteClicks = 0;
 
-int _minuteClicks = 0;
+  int _minuteMoves = 0;
 
-int _minuteMoves = 0;
+  int _minuteIdleSeconds = 0;
 
-int _minuteIdleSeconds = 0;
+  double _smoothProductivity = 75;
 
-Timer? _productivityTimer;
+  // =========================================
+  // CLEAR MESSAGE
+  // =========================================
 
-double _smoothProductivity = 75;
   void clearMessages() {
     emit(state.copyWith(clearError: true, clearSuccess: true));
   }
+
+  // =========================================
+  // INIT
+  // =========================================
 
   Future<void> initCubit() async {
     if (_isInitialized) {
@@ -119,30 +128,30 @@ double _smoothProductivity = 75;
 
     _isInitialized = true;
   }
-@override
-Future<void> close() {
 
-  _ticker?.cancel();
+  @override
+  Future<void> close() {
+    _ticker?.cancel();
 
-  _randomScreenshotTimer
-      ?.cancel();
+    _randomScreenshotTimer?.cancel();
 
-  _autoCheckoutTimer
-      ?.cancel();
+    _productivityTimer?.cancel();
 
-  _productivityTimer
-      ?.cancel();
+    _activitySubscription?.cancel();
 
-  _activitySubscription
-      ?.cancel();
+    _autoCheckoutTimer?.cancel();
 
-  if (_isInitialized) {
+    if (_isInitialized) {
+      _odooService.close();
+    }
 
-    _odooService.close();
+    return super.close();
   }
 
-  return super.close();
-}
+  // =========================================
+  // LOAD STATUS
+  // =========================================
+
   Future<void> loadInitialStatus() async {
     await initCubit();
 
@@ -181,17 +190,11 @@ Future<void> close() {
       emit(
         state.copyWith(
           status: AttendanceStatus.success,
-
           isCheckedIn: isCheckedIn,
-
           baseHours: baseHours,
-
           todayHours: _formatHours(baseHours),
-
           productiveHours: productiveHours,
-
           idleHours: _idleSeconds / 3600.0,
-
           productivityPercent: productivityPercent,
         ),
       );
@@ -201,55 +204,40 @@ Future<void> close() {
       emit(
         state.copyWith(
           status: AttendanceStatus.failure,
-
           errorMessage: e.toString(),
         ),
       );
     }
   }
-void _listenActivityStream() {
 
-  _activitySubscription?.cancel();
+  // =========================================
+  // ACTIVITY STREAM
+  // =========================================
 
-  _activitySubscription =
-      _eventChannel
-          .receiveBroadcastStream()
-          .listen(
+  void _listenActivityStream() {
+    _activitySubscription?.cancel();
 
-    (event) async {
-
+    _activitySubscription = _eventChannel.receiveBroadcastStream().listen((
+      event,
+    ) async {
       try {
+        if (isClosed) return;
 
-        if (isClosed) {
-          return;
-        }
+        if (!state.isCheckedIn) return;
 
-        if (!state.isCheckedIn) {
-          return;
-        }
+        if (event == null) return;
 
-        if (event == null) {
-          return;
-        }
+        if (event is! Map) return;
 
-        if (event is! Map) {
-          return;
-        }
+        final int keys = event['keys'] ?? 0;
 
-        final int keys =
-            event['keys'] ?? 0;
+        final int clicks = event['clicks'] ?? 0;
 
-        final int clicks =
-            event['clicks'] ?? 0;
+        final int moves = event['moves'] ?? 0;
 
-        final int moves =
-            event['moves'] ?? 0;
+        final int idle = event['idle'] ?? 0;
 
-        final int idle =
-            event['idle'] ?? 0;
-
-        final bool currentlyIdle =
-            idle >= 60;
+        final bool currentlyIdle = idle >= 60;
 
         _totalKeys += keys;
 
@@ -263,20 +251,25 @@ void _listenActivityStream() {
 
         _minuteMoves += moves;
 
-        if (currentlyIdle) {
+        print("TOTAL KEYS => $_totalKeys");
 
+        print("TOTAL CLICKS => $_totalClicks");
+
+        print("TOTAL MOVES => $_totalMoves");
+
+        if (currentlyIdle) {
           _idleSeconds++;
 
           _minuteIdleSeconds++;
-
         } else {
-
           _activeSeconds++;
         }
 
-        if (currentlyIdle &&
-            !_isIdle) {
+        // =========================================
+        // IDLE DETECTION
+        // =========================================
 
+        if (currentlyIdle && !_isIdle) {
           _isIdle = true;
 
           _dialogShown = true;
@@ -285,170 +278,73 @@ void _listenActivityStream() {
 
           _showIdleWarning();
         }
-
-        else if (!currentlyIdle &&
-            _isIdle) {
-
+        // =========================================
+        // USER ACTIVE AGAIN
+        // =========================================
+        else if (!currentlyIdle && _isIdle) {
           _isIdle = false;
 
           _trackingPaused = false;
 
           _dialogShown = false;
 
-          _autoCheckoutTimer
-              ?.cancel();
+          _autoCheckoutTimer?.cancel();
 
-          final context =
-              navigatorKey
-                  .currentState
-                  ?.overlay
-                  ?.context;
+          final context = navigatorKey.currentState?.overlay?.context;
 
-          if (context != null &&
-              Navigator.canPop(
-                  context)) {
-
-            Navigator.of(
-              context,
-              rootNavigator: true,
-            ).pop();
+          if (context != null && Navigator.canPop(context)) {
+            Navigator.of(context, rootNavigator: true).pop();
           }
         }
 
-        print(
-          "KEYS => $_totalKeys",
+        emit(
+          state.copyWith(
+            totalKeys: _totalKeys,
+            totalClicks: _totalClicks,
+            totalMoves: _totalMoves,
+            idleHours: _idleSeconds / 3600,
+            productiveHours: productiveHours,
+          ),
         );
-
-        print(
-          "CLICKS => $_totalClicks",
-        );
-
-        print(
-          "MOVES => $_totalMoves",
-        );
-
-        print(
-          "IDLE => $idle",
-        );
-
       } catch (e) {
-
-        debugPrint(
-          "Tracker crash => $e",
-        );
+        debugPrint("Tracker crash => $e");
       }
-    },
+    });
+  }
 
-    onError: (e) {
+  // =========================================
+  // PRODUCTIVITY TIMER
+  // =========================================
 
-      debugPrint(
-        "Tracker error => $e",
-      );
-    },
-  );
-}
-void _startProductivityTimer() {
+  void _startProductivityTimer() {
+    _productivityTimer?.cancel();
 
-  _productivityTimer
-      ?.cancel();
-
-  _productivityTimer =
-      Timer.periodic(
-
-    const Duration(
-        minutes: 1),
-
-    (_) {
-
+    _productivityTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       double activityScore = 0;
 
-      activityScore +=
-          (_minuteKeys * 0.02);
+      activityScore += (_minuteKeys * 0.02);
 
-      activityScore +=
-          (_minuteClicks * 0.03);
+      activityScore += (_minuteClicks * 0.03);
 
-      activityScore +=
-          (_minuteMoves * 0.001);
+      activityScore += (_minuteMoves * 0.001);
 
-      activityScore -=
-          (_minuteIdleSeconds * 0.5);
+      activityScore -= (_minuteIdleSeconds * 0.5);
 
-      activityScore =
-          activityScore.clamp(
-              0,
-              100);
+      activityScore = activityScore.clamp(0, 100);
 
       _smoothProductivity =
+          (_smoothProductivity * 0.85) + (activityScore * 0.15);
 
-          (_smoothProductivity *
-                  0.85) +
-
-              (activityScore *
-                  0.15);
-
-      _smoothProductivity =
-          _smoothProductivity
-              .clamp(
-                  0,
-                  100);
-
-      final productiveHours =
-          _activeSeconds /
-          3600.0;
-
-      final idleHours =
-          _idleSeconds /
-          3600.0;
-
-      print(
-        "====================",
-      );
-
-      print(
-        "PRODUCTIVITY => ${_smoothProductivity.toStringAsFixed(1)}%",
-      );
-
-      print(
-        "MINUTE KEYS => $_minuteKeys",
-      );
-
-      print(
-        "MINUTE CLICKS => $_minuteClicks",
-      );
-
-      print(
-        "MINUTE MOVES => $_minuteMoves",
-      );
-
-      print(
-        "MINUTE IDLE => $_minuteIdleSeconds",
-      );
-
-      print(
-        "====================",
-      );
+      _smoothProductivity = _smoothProductivity.clamp(0, 100);
 
       emit(
         state.copyWith(
-
-          productiveHours:
-              productiveHours,
-
-          idleHours:
-              idleHours,
-
-          productivityPercent:
-              _smoothProductivity,
-
-          totalKeys:
-              _totalKeys,
-
-          totalClicks:
-              _totalClicks,
-
-          totalMoves:
-              _totalMoves,
+          productiveHours: productiveHours,
+          idleHours: _idleSeconds / 3600,
+          productivityPercent: _smoothProductivity,
+          totalKeys: _totalKeys,
+          totalClicks: _totalClicks,
+          totalMoves: _totalMoves,
         ),
       );
 
@@ -459,9 +355,13 @@ void _startProductivityTimer() {
       _minuteMoves = 0;
 
       _minuteIdleSeconds = 0;
-    },
-  );
-}
+    });
+  }
+
+  // =========================================
+  // IDLE WARNING
+  // =========================================
+
   void _showIdleWarning() {
     final context = navigatorKey.currentState?.overlay?.context;
 
@@ -477,9 +377,7 @@ void _startProductivityTimer() {
 
     showDialog(
       context: context,
-
       barrierDismissible: false,
-
       builder: (_) {
         return AlertDialog(
           title: const Text("Inactivity detected"),
@@ -512,21 +410,9 @@ void _startProductivityTimer() {
     await toggleAttendance(isAutoCheckout: true);
   }
 
-  void _startTicker() {
-    _ticker?.cancel();
-
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      final totalHours = state.baseHours + _calculateCurrentSessionHours();
-
-      final formatted = _formatHours(totalHours);
-
-      if (formatted == state.todayHours) {
-        return;
-      }
-
-      emit(state.copyWith(todayHours: formatted));
-    });
-  }
+  // =========================================
+  // TOGGLE ATTENDANCE
+  // =========================================
 
   Future<void> toggleAttendance({bool isAutoCheckout = false}) async {
     final currentlyCheckedIn = state.isCheckedIn;
@@ -547,16 +433,27 @@ void _startProductivityTimer() {
       if (updatedState) {
         _currentCheckInTime = DateTime.now();
 
+        _listenActivityStream();
+
+        _startProductivityTimer();
+
         startRandomScreenshots();
 
-
-_startProductivityTimer();
         await _methodChannel.invokeMethod('startTracking');
+        AppUsageService().startTracking();
+        print("TRACKING STARTED");
       } else {
         stopRandomScreenshots();
+
         _productivityTimer?.cancel();
 
+        await _activitySubscription?.cancel();
+
+        _activitySubscription = null;
+
         await _methodChannel.invokeMethod('stopTracking');
+        AppUsageService().stopTracking();
+        print("TRACKING STOPPED");
 
         _currentCheckInTime = null;
 
@@ -575,14 +472,14 @@ _startProductivityTimer();
         _activeSeconds = 0;
 
         _idleSeconds = 0;
+
+        _autoCheckoutTimer?.cancel();
       }
 
       emit(
         state.copyWith(
           status: AttendanceStatus.success,
-
           isCheckedIn: updatedState,
-
           successMessage: isAutoCheckout
               ? "Auto checked out"
               : updatedState
@@ -594,11 +491,141 @@ _startProductivityTimer();
       emit(
         state.copyWith(
           status: AttendanceStatus.failure,
-
           errorMessage: e.toString(),
         ),
       );
     }
+  }
+
+  // =========================================
+  // SCREENSHOT MONITORING
+  // =========================================
+
+  void startRandomScreenshots() {
+    if (_isTracking) {
+      return;
+    }
+
+    _isTracking = true;
+
+    _scheduleNextScreenshot();
+  }
+
+  void stopRandomScreenshots() {
+    _isTracking = false;
+
+    _randomScreenshotTimer?.cancel();
+  }
+
+  void _scheduleNextScreenshot() {
+    if (!_isTracking) {
+      return;
+    }
+
+    final randomSeconds = Random().nextInt(10) + 10;
+
+    _randomScreenshotTimer = Timer(Duration(seconds: randomSeconds), () async {
+      await captureAndUpload();
+
+      if (_isTracking) {
+        _scheduleNextScreenshot();
+      }
+    });
+  }
+
+  // =========================================
+  // ACTIVE WINDOW
+  // =========================================
+
+  String getActiveWindowTitle() {
+    if (!Platform.isWindows) {
+      return "";
+    }
+
+    final hwnd = GetForegroundWindow();
+
+    final length = GetWindowTextLength(hwnd);
+
+    final buffer = wsalloc(length + 1);
+
+    GetWindowText(hwnd, buffer, length + 1);
+
+    final title = buffer.toDartString();
+
+    calloc.free(buffer);
+
+    return title.toLowerCase();
+  }
+
+  // =========================================
+  // CAPTURE LOGIC
+  // =========================================
+
+  Future<void> captureAndUpload() async {
+    try {
+      final title = getActiveWindowTitle();
+
+      print("ACTIVE WINDOW => $title");
+
+      final blockedKeywords = [
+        "ftprotech",
+
+        "bank",
+        "sbi",
+        "hdfc",
+        "icici",
+        "axis bank",
+        "kotak",
+        "paytm",
+        "phonepe",
+        "gpay",
+        "google pay",
+        "netbanking",
+        "upi",
+      ];
+
+      final isBlocked = blockedKeywords.any((word) => title.contains(word));
+
+      if (isBlocked) {
+        print("BLOCKED WINDOW => NO SCREENSHOT");
+
+        return;
+      }
+
+      print("TAKING SCREENSHOT...");
+
+      final file = await ScreenshotService.captureScreen();
+
+      if (file == null) {
+        print("SCREENSHOT FAILED");
+
+        return;
+      }
+
+      print("SCREENSHOT SAVED => ${file.path}");
+    } catch (e) {
+      debugPrint("Screenshot error => $e");
+    }
+  }
+
+  // =========================================
+  // TICKER
+  // =========================================
+
+  void _startTicker() {
+    _ticker?.cancel();
+
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      final totalHours = state.baseHours + _calculateCurrentSessionHours();
+
+      final formatted = _formatHours(totalHours);
+
+      if (formatted == state.todayHours) {
+        return;
+      }
+
+      emit(state.copyWith(todayHours: formatted));
+    });
   }
 
   double _calculateCurrentSessionHours() {
@@ -619,10 +646,14 @@ _startProductivityTimer();
     return _activeSeconds / 3600.0;
   }
 
- double get productivityPercent {
+  double get productivityPercent {
+    return _smoothProductivity;
+  }
 
-  return _smoothProductivity;
-}
+  // =========================================
+  // FETCH HOURS
+  // =========================================
+
   Future<double> _fetchBaseHours() async {
     DateTime now = DateTime.now();
 
@@ -658,51 +689,9 @@ _startProductivityTimer();
     return total;
   }
 
-  void startRandomScreenshots() {
-    if (_isTracking) {
-      return;
-    }
-
-    _isTracking = true;
-
-    _scheduleNextScreenshot();
-  }
-
-  void stopRandomScreenshots() {
-    _isTracking = false;
-
-    _randomScreenshotTimer?.cancel();
-  }
-
-  void _scheduleNextScreenshot() {
-    if (!_isTracking) {
-      return;
-    }
-
-    final randomSeconds = Random().nextInt(10) + 10;
-
-    _randomScreenshotTimer = Timer(Duration(seconds: randomSeconds), () async {
-      await captureAndUpload();
-
-      if (_isTracking) {
-        _scheduleNextScreenshot();
-      }
-    });
-  }
-
-  Future<void> captureAndUpload() async {
-    try {
-      final file = await ScreenshotService.captureScreen();
-
-      if (file == null) {
-        return;
-      }
-
-      debugPrint("Screenshot => ${file.path}");
-    } catch (e) {
-      debugPrint("Screenshot error => $e");
-    }
-  }
+  // =========================================
+  // IP ADDRESS
+  // =========================================
 
   Future<String> _getIpAddress() async {
     try {
@@ -717,6 +706,10 @@ _startProductivityTimer();
 
     return "0.0.0.0";
   }
+
+  // =========================================
+  // LOCATION
+  // =========================================
 
   Future<Position?> _getCurrentPosition() async {
     try {

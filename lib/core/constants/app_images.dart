@@ -5,4 +5,5 @@ class AppImages {
   static String land = "assets/images/land.png";
   static String land2 = "assets/images/land2.png";
   static String leave = "assets/images/leave.png";
+  static String logoDark = 'assets/images/opsen_dark.png';
 }

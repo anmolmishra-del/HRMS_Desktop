@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/core/constants/app_images.dart';
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
+import 'package:hrms_desktop/core/theme/app_theme.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
+import 'package:hrms_desktop/core/services/auto_checkin_service.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_state.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
@@ -10,8 +14,6 @@ import 'package:hrms_desktop/features/attendance/cubit/attendance_report_cubit.d
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_state.dart';
 import 'package:hrms_desktop/features/in_out/presentation/in_out_page.dart';
 import 'package:intl/intl.dart';
-import 'package:hrms_desktop/core/constants/app_colors.dart';
-import 'package:hrms_desktop/features/attendance/attendance_page.dart';
 import 'package:hrms_desktop/features/home/presentation/productivity_page.dart';
 import 'package:hrms_desktop/features/home/presentation/settings_page.dart';
 
@@ -25,7 +27,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
 
-  /// PAGES
+
   late final List<Widget> pages;
 
   @override
@@ -36,7 +38,7 @@ class _HomePageState extends State<HomePage> {
       const DashboardContent(),
 
       const AttendancePage(),
-
+      const AttendancePage(),
       const ProductivityPage(),
 
       const SettingsPage(),
@@ -49,42 +51,51 @@ class _HomePageState extends State<HomePage> {
       create: (context) => AttendanceReportCubit()..fetchReport(),
 
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FB),
+        backgroundColor: Theme.of(context).colorScheme.background,
 
         body: SafeArea(
           child: Row(
             children: [
-              /// SIDEBAR
+              
               Container(
                 width: 250,
 
-                decoration: const BoxDecoration(color: Color(0xFF111827)),
+                decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
 
                 child: Column(
                   children: [
                     const SizedBox(height: 30),
 
-                    Image.asset('assets/images/opsen.png', height: 70),
-
-                    const SizedBox(height: 12),
-
-                    const Text(
-                      "OpzentoHR",
-
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    AnimatedBuilder(
+                      animation: AppTheme(),
+                      builder: (context, child) {
+                        return Image.asset(
+                          AppTheme().isDarkMode ? AppImages.logo : AppImages.logoDark,
+                          height: 150,
+                          width: 150,
+                        );
+                      },
                     ),
 
-                    const SizedBox(height: 40),
+                  
 
-                    /// DASHBOARD
+                    // const Text(
+                    //   "OpzentoHR",
+
+                    //   style: TextStyle(
+                    //     color: Colors.white,
+                    //     fontSize: 24,
+                    //     fontWeight: FontWeight.bold,
+                    //   ),
+                    // ),
+                    const SizedBox(height: 20),
+
+                   
                     _sideBarItem(
+                      context: context,
                       icon: Icons.dashboard_rounded,
 
-                      title: "Dashboard",
+                      title: AppLocalizations.of(context).dashboard,
 
                       active: selectedIndex == 0,
 
@@ -95,11 +106,12 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
 
-                    /// ATTENDANCE
+                  
                     _sideBarItem(
+                      context: context,
                       icon: Icons.access_time_filled_rounded,
 
-                      title: "Attendance",
+                      title: AppLocalizations.of(context).attendance,
 
                       active: selectedIndex == 1,
 
@@ -110,11 +122,11 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
 
-                    /// PRODUCTIVITY
                     _sideBarItem(
-                      icon: Icons.bar_chart_rounded,
+                      context: context,
+                      icon: Icons.leave_bags_at_home,
 
-                      title: "Productivity",
+                      title: AppLocalizations.of(context).leaves,
 
                       active: selectedIndex == 2,
 
@@ -125,17 +137,34 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
 
-                    /// SETTINGS
+                 
                     _sideBarItem(
-                      icon: Icons.settings_rounded,
+                      context: context,
+                      icon: Icons.bar_chart_rounded,
 
-                      title: "Settings",
+                      title: AppLocalizations.of(context).productivity,
 
                       active: selectedIndex == 3,
 
                       onTap: () {
                         setState(() {
                           selectedIndex = 3;
+                        });
+                      },
+                    ),
+
+                
+                    _sideBarItem(
+                      context: context,
+                      icon: Icons.settings_rounded,
+
+                      title: AppLocalizations.of(context).settings,
+
+                      active: selectedIndex == 4,
+
+                      onTap: () {
+                        setState(() {
+                          selectedIndex = 4;
                         });
                       },
                     ),
@@ -152,9 +181,9 @@ class _HomePageState extends State<HomePage> {
 
                             backgroundColor: Colors.deepPurple.shade200,
 
-                            child: const Icon(
+                            child: Icon(
                               Icons.person,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onPrimary,
                             ),
                           ),
 
@@ -192,8 +221,8 @@ class _HomePageState extends State<HomePage> {
                                         Text(
                                           employeeName,
 
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurface,
 
                                             fontWeight: FontWeight.w600,
 
@@ -206,8 +235,8 @@ class _HomePageState extends State<HomePage> {
                                         Text(
                                           employeePost,
 
-                                          style: const TextStyle(
-                                            color: Colors.white54,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
 
                                             fontSize: 12,
                                           ),
@@ -232,10 +261,10 @@ class _HomePageState extends State<HomePage> {
                                         );
                                       },
 
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.logout_rounded,
 
-                                        color: Colors.white,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                       ),
                                     ),
                                   ],
@@ -261,8 +290,32 @@ class _HomePageState extends State<HomePage> {
 }
 
 /// DASHBOARD PAGE
-class DashboardContent extends StatelessWidget {
+class DashboardContent extends StatefulWidget {
   const DashboardContent({super.key});
+
+  @override
+  State<DashboardContent> createState() => _DashboardContentState();
+}
+
+class _DashboardContentState extends State<DashboardContent> {
+  bool _autoCheckInAttempted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto check-in will be triggered after attendance state is loaded
+  }
+
+  Future<void> _performAutoCheckIn(BuildContext context) async {
+    try {
+      await AutoCheckInService.performAutoCheckInIfNeeded(
+        context.read<AttendanceCubit>(),
+      );
+    } catch (e) {
+      // Silently handle auto check-in errors to not disrupt user experience
+      debugPrint('Auto check-in error: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -270,6 +323,12 @@ class DashboardContent extends StatelessWidget {
       listener: (context, state) {
         if (state.status == AttendanceStatus.success) {
           context.read<AttendanceReportCubit>().fetchReport();
+          
+          // Trigger auto check-in only once after initial load
+          if (!_autoCheckInAttempted) {
+            _autoCheckInAttempted = true;
+            _performAutoCheckIn(context);
+          }
         }
       },
 
@@ -285,28 +344,28 @@ class DashboardContent extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
                     Text(
-                      "Welcome Back 👋",
+                      "${AppLocalizations.of(context).welcomeBack} 👋",
 
                       style: TextStyle(
                         fontSize: 30,
 
                         fontWeight: FontWeight.bold,
 
-                        color: Color(0xFF111827),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
 
                     SizedBox(height: 6),
 
                     Text(
-                      "Track attendance and productivity",
+                      AppLocalizations.of(context).todaysTasks,
 
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 16),
                     ),
                   ],
                 ),
@@ -379,7 +438,7 @@ class DashboardContent extends StatelessWidget {
                           .toStringAsFixed(1);
 
                       return _statCard(
-                        title: "Productivity",
+                        title: AppLocalizations.of(context).productivity,
 
                         value: "$productivity%",
 
@@ -397,10 +456,10 @@ class DashboardContent extends StatelessWidget {
                 Expanded(
                   child: BlocBuilder<AttendanceCubit, AttendanceState>(
                     builder: (context, state) {
-                      final hours = "${state.todayHours ?? 0}h";
+                      final hours = "${state.todayHours}h";
 
                       return _statCard(
-                        title: "Working Hours",
+                        title: AppLocalizations.of(context).workingHours,
 
                         value: hours,
 
@@ -446,8 +505,8 @@ class DashboardContent extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                     children: [
-                      const Text(
-                        "Weekly Productivity",
+                      Text(
+                        AppLocalizations.of(context).weeklyProductivityTrend,
 
                         style: TextStyle(
                           fontSize: 22,
@@ -468,12 +527,11 @@ class DashboardContent extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
 
-                        child: const Text(
+                        child: Text(
                           "This Week",
 
                           style: TextStyle(
                             color: Colors.deepPurple,
-
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -515,15 +573,15 @@ class DashboardContent extends StatelessWidget {
             const SizedBox(height: 30),
 
             /// RECENT ACTIVITIES
-            const Text(
-              "Recent Activities",
+            Text(
+              AppLocalizations.of(context).recentActivities,
 
               style: TextStyle(
                 fontSize: 24,
 
                 fontWeight: FontWeight.bold,
 
-                color: Color(0xFF111827),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
 
@@ -531,15 +589,10 @@ class DashboardContent extends StatelessWidget {
 
             BlocBuilder<AttendanceReportCubit, AttendanceReportState>(
               builder: (context, state) {
-                if (state.status == ReportStatus.loading) {
-                  return const ShimmerCard();
-                }
-
                 if (state.records.isEmpty) {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(20),
-
                       child: Text("No recent records"),
                     ),
                   );
@@ -556,7 +609,6 @@ class DashboardContent extends StatelessWidget {
 
                   itemBuilder: (context, index) {
                     final record = state.records[index];
-
                     return _ModernActivityTile(record: record);
                   },
                 );
@@ -579,6 +631,7 @@ class AttendancePage extends StatelessWidget {
 }
 
 Widget _sideBarItem({
+  required BuildContext context,
   required IconData icon,
   required String title,
   required bool active,
@@ -595,22 +648,22 @@ Widget _sideBarItem({
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
 
       decoration: BoxDecoration(
-        color: active ? Colors.deepPurple : Colors.transparent,
+        color: active ? Theme.of(context).colorScheme.primary : Colors.transparent,
 
         borderRadius: BorderRadius.circular(18),
       ),
 
       child: Row(
         children: [
-          Icon(icon, color: Colors.white),
+          Icon(icon, color: active ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface),
 
           const SizedBox(width: 14),
 
           Text(
             title,
 
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: active ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface,
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -727,9 +780,9 @@ class _ModernActivityTile extends StatelessWidget {
                 Text(
                   DateFormat('EEEE, dd MMM').format(checkIn),
 
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 16,
                   ),
                 ),
@@ -738,10 +791,10 @@ class _ModernActivityTile extends StatelessWidget {
 
                 Text(
                   completed
-                      ? "Checked in at ${DateFormat('hh:mm a').format(checkIn)} and checked out at ${DateFormat('hh:mm a').format(checkOut)}"
-                      : "Working session started at ${DateFormat('hh:mm a').format(checkIn)}",
+                      ? "${AppLocalizations.of(context).checkedInAt} ${DateFormat('hh:mm a').format(checkIn)} ${AppLocalizations.of(context).and} ${AppLocalizations.of(context).checkedOutAt} ${DateFormat('hh:mm a').format(checkOut)}"
+                      : "${AppLocalizations.of(context).workingSessionStartedAt} ${DateFormat('hh:mm a').format(checkIn)}",
 
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 13),
                 ),
               ],
             ),
@@ -760,7 +813,7 @@ class _ModernActivityTile extends StatelessWidget {
             ),
 
             child: Text(
-              completed ? "Completed" : "Running",
+              completed ? AppLocalizations.of(context).completed : AppLocalizations.of(context).running,
 
               style: TextStyle(
                 color: completed ? Colors.green : Colors.orange,

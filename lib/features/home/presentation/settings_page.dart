@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/core/theme/app_theme.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/features/home/widgets/anniversary.dart';
+import 'package:hrms_desktop/features/home/widgets/birth_days.dart';
+import 'package:hrms_desktop/features/home/widgets/circular.dart';
+
+import 'package:hrms_desktop/features/profile/pages/holidays_calendar.dart';
+import 'package:hrms_desktop/features/profile/pages/job_details.dart';
+import 'package:hrms_desktop/features/profile/pages/language.dart';
+import 'package:hrms_desktop/features/profile/pages/notifications.dart';
+import 'package:hrms_desktop/features/profile/pages/personal_information.dart';
+import 'package:hrms_desktop/features/profile/profile.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -13,11 +25,11 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
   bool _biometricEnabled = false;
   bool _autoCheckInEnabled = false;
   String _selectedLanguage = 'English';
   String _selectedTheme = 'Default';
+  final AppTheme _appTheme = AppTheme();
 
   // Available theme backgrounds
   final List<Map<String, dynamic>> _themeOptions = [
@@ -54,8 +66,27 @@ class _SettingsPageState extends State<SettingsPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _appTheme.initialize();
+    _loadAutoCheckInSetting();
+  }
+
+  Future<void> _loadAutoCheckInSetting() async {
+    final value = await SharedPref().getBool('auto_check_in_enabled');
+    if (value != null) {
+      setState(() {
+        _autoCheckInEnabled = value;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return AnimatedBuilder(
+      animation: _appTheme,
+      builder: (context, child) {
+        return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,21 +95,21 @@ class _SettingsPageState extends State<SettingsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Settings ⚙️",
+                    AppLocalizations.of(context).settings + " ⚙️",
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   SizedBox(height: 6),
                   Text(
-                    "Customize your experience",
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                    AppLocalizations.of(context).customizeYourExperience,
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 16),
                   ),
                 ],
               ),
@@ -88,7 +119,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
@@ -105,7 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       "v1.0.0",
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -124,13 +155,13 @@ class _SettingsPageState extends State<SettingsPage> {
               _buildProfileTile(),
               const SizedBox(height: 16),
               _buildSettingTile(
-                title: "Edit Profile",
-                subtitle: "Update your personal information",
-                icon: Icons.edit_rounded,
+                title: AppLocalizations.of(context).profile,
+                subtitle: "View and manage your profile information",
+                icon: Icons.person_rounded,
                 onTap: () {},
               ),
               _buildSettingTile(
-                title: "Change Password",
+                title: AppLocalizations.of(context).changePassword,
                 subtitle: "Update your account password",
                 icon: Icons.lock_rounded,
                 onTap: () {},
@@ -142,35 +173,22 @@ class _SettingsPageState extends State<SettingsPage> {
 
           /// APP PREFERENCES
           _buildSectionCard(
-            title: "App Preferences",
+            title: AppLocalizations.of(context).appPreferences,
             icon: Icons.app_settings_alt_rounded,
             children: [
               _buildSwitchTile(
-                title: "Push Notifications",
+                title: AppLocalizations.of(context).notifications,
                 subtitle: "Receive notifications for check-in/out reminders",
                 icon: Icons.notifications_rounded,
                 value: _notificationsEnabled,
                 onChanged: (value) => setState(() => _notificationsEnabled = value),
               ),
               const SizedBox(height: 16),
-              _buildSwitchTile(
-                title: "Dark Mode",
-                subtitle: "Switch to dark theme",
-                icon: Icons.dark_mode_rounded,
-                value: _darkModeEnabled,
-                onChanged: (value) => setState(() => _darkModeEnabled = value),
-              ),
+              _buildThemeToggleTile(),
               const SizedBox(height: 16),
-              _buildDropdownTile(
-                title: "Language",
-                subtitle: "Choose your preferred language",
-                icon: Icons.language_rounded,
-                value: _selectedLanguage,
-                items: ['English', 'Spanish', 'French', 'German'],
-                onChanged: (value) => setState(() => _selectedLanguage = value!),
-              ),
+              _buildLanguageDropdownTile(),
               const SizedBox(height: 16),
-              _buildThemeSelector(),
+             // _buildThemeSelector(),
             ],
           ),
 
@@ -178,23 +196,26 @@ class _SettingsPageState extends State<SettingsPage> {
 
           /// WORK SETTINGS
           _buildSectionCard(
-            title: "Work Settings",
+            title: AppLocalizations.of(context).workSettings,
             icon: Icons.work_rounded,
             children: [
-              _buildSwitchTile(
-                title: "Biometric Authentication",
-                subtitle: "Use fingerprint/face ID for check-in/out",
-                icon: Icons.fingerprint_rounded,
-                value: _biometricEnabled,
-                onChanged: (value) => setState(() => _biometricEnabled = value),
-              ),
+              // _buildSwitchTile(
+              //   title: "Biometric Authentication",
+              //   subtitle: "Use fingerprint/face ID for check-in/out",
+              //   icon: Icons.fingerprint_rounded,
+              //   value: _biometricEnabled,
+              //   onChanged: (value) => setState(() => _biometricEnabled = value),
+              // ),
               const SizedBox(height: 16),
               _buildSwitchTile(
                 title: "Auto Check-in",
                 subtitle: "Automatically check-in when opening the app",
                 icon: Icons.auto_mode_rounded,
                 value: _autoCheckInEnabled,
-                onChanged: (value) => setState(() => _autoCheckInEnabled = value),
+                onChanged: (value) async {
+                  setState(() => _autoCheckInEnabled = value);
+                  await SharedPref().saveBool('auto_check_in_enabled', value);
+                },
               ),
               const SizedBox(height: 16),
               _buildSettingTile(
@@ -210,7 +231,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
           /// DATA & PRIVACY
           _buildSectionCard(
-            title: "Data & Privacy",
+            title: AppLocalizations.of(context).dataAndPrivacy,
             icon: Icons.security_rounded,
             children: [
               _buildSettingTile(
@@ -240,7 +261,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
           /// SUPPORT
           _buildSectionCard(
-            title: "Support & Help",
+            title: AppLocalizations.of(context).supportAndHelp,
             icon: Icons.help_rounded,
             children: [
               _buildSettingTile(
@@ -272,7 +293,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -284,11 +305,10 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(
               children: [
                 _buildSettingTile(
-                  title: "Logout",
+                  title: AppLocalizations.of(context).logout,
                   subtitle: "Sign out from your account",
                   icon: Icons.logout_rounded,
-                  iconColor: Colors.red,
-                  textColor: Colors.red,
+                  trailing: Icon(Icons.logout_rounded, color: Colors.red),
                   onTap: () async {
                     await context.read<LoginCubit>().logout();
                     if (context.mounted) {
@@ -307,6 +327,58 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 40),
         ],
       ),
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeToggleTile() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            _appTheme.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Dark Mode",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _appTheme.isDarkMode ? "Switch to light theme" : "Switch to dark theme",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+        CupertinoSwitch(
+          value: _appTheme.isDarkMode,
+          onChanged: (value) async {
+            await _appTheme.toggleTheme();
+          },
+          activeColor: Theme.of(context).colorScheme.primary,
+        ),
+      ],
     );
   }
 
@@ -318,11 +390,11 @@ class _SettingsPageState extends State<SettingsPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(_appTheme.isDarkMode ? 0.2 : 0.04),
             blurRadius: 14,
           ),
         ],
@@ -335,22 +407,22 @@ class _SettingsPageState extends State<SettingsPage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: Colors.deepPurple,
+                  color: Theme.of(context).colorScheme.primary,
                   size: 20,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF111827),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -390,8 +462,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 backgroundColor: Colors.deepPurple.shade200,
                 child: Text(
                   employeeName.isNotEmpty ? employeeName[0].toUpperCase() : "E",
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -415,7 +487,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       employeePost,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -423,7 +495,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       employeeEmail,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                       ),
                     ),
                   ],
@@ -431,7 +503,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               Icon(
                 Icons.chevron_right_rounded,
-                color: Colors.grey.shade400,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
               ),
             ],
           ),
@@ -440,63 +512,84 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  
   Widget _buildSettingTile({
     required String title,
-    required String subtitle,
+    String? subtitle,
     required IconData icon,
-    Color? iconColor,
-    Color? textColor,
     required VoidCallback onTap,
+    Widget? trailing,
+    List<Widget>? children,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: (iconColor ?? Colors.deepPurple).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.black.withOpacity(0.05),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.black.withOpacity(0.05),
+                width: 2,
               ),
-              child: Icon(
-                icon,
-                color: iconColor ?? Colors.deepPurple,
-                size: 20,
-              ),
+              color: false ? Colors.green : Colors.transparent,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: textColor ?? const Color(0xFF111827),
-                    ),
+            child: false
+                ? Icon(
+                    Icons.check,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.surface,
+                  )
+                : null,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    decoration: false
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
                   ),
-                  const SizedBox(height: 2),
+                ),
+                if (subtitle != null) ...[
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
-              ),
+                if (children != null) ...children,
+              ],
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: Colors.grey.shade400,
-            ),
-          ],
-        ),
+          ),
+          if (trailing != null) ...[trailing],
+        ],
       ),
     );
   }
@@ -649,26 +742,19 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             const SizedBox(width: 16),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Background Theme",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Choose your preferred background",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  "Choose your preferred background",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -761,6 +847,99 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLanguageDropdownTile() {
+    return AnimatedBuilder(
+      animation: AppLocalization(),
+      builder: (context, child) {
+        final appLocalization = AppLocalization();
+        final currentLocale = appLocalization.currentLocale;
+        
+        return Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.language_rounded,
+                color: Colors.deepPurple,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocalizations.of(context).language,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    AppLocalizations.of(context).chooseYourPreferredLanguage,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButton<Locale>(
+                value: currentLocale,
+                items: AppLocalization.supportedLocales.map((Locale locale) {
+                  return DropdownMenuItem<Locale>(
+                    value: locale,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          appLocalization.getLanguageNativeName(locale),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '(${locale.languageCode.toUpperCase()})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (Locale? newLocale) async {
+                  if (newLocale != null) {
+                    await appLocalization.setLocale(newLocale);
+                  }
+                },
+                underline: const SizedBox(),
+                icon: Icon(
+                  Icons.arrow_drop_down_rounded,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

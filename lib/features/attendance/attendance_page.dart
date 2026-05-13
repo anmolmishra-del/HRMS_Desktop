@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hrms_desktop/core/constants/app_images.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/core/widget/custome_appbar.dart';
 import 'package:hrms_desktop/features/attendance/action_card.dart';
 import 'package:hrms_desktop/features/attendance/this_week_page.dart';
@@ -13,9 +14,9 @@ class AttendanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F2FB),
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CustomAppBar(
-        title: 'Attendance',
+        title: AppLocalizations.of(context).attendance,
         subtitle: 'Mark and your attendance',
         assetImage: AppImages.person,
       ),

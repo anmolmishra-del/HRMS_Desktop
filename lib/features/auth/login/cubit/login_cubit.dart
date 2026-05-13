@@ -217,7 +217,7 @@ class LoginCubit extends Cubit<LoginState> {
     await prefs.remove('partner_id');
     await prefs.remove('isInternalUser');
     await prefs.remove('rememberMe');
-    // Clear chat related data too if it exists
+   
     await prefs.remove('chat_server_url');
     await prefs.remove('chat_db_name');
     await prefs.remove('chat_username');

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/core/widget/custome_card.dart';
 import 'package:hrms_desktop/features/attendance/attendance_page.dart';
 
@@ -19,7 +20,7 @@ class HomeActions extends StatelessWidget {
       ),
       children: [
         AttendanceActionCard(
-          title: 'Fix Attendance',
+          title: AppLocalizations.of(context).attendance,
           icon: Icons.edit_calendar,
           color: const Color(0xFF8E7CF0),
           onTap: () {
@@ -38,7 +39,7 @@ class HomeActions extends StatelessWidget {
           },
         ),
         AttendanceActionCard(
-          title: 'In/Out Report',
+          title: AppLocalizations.of(context).attendance,
           icon: Icons.report,
           color: const Color(0xFFFF6D00),
           onTap: () {

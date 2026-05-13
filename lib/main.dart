@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:hrms_desktop/core/constants/app_images.dart';
+import 'package:hrms_desktop/core/theme/app_theme.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/routes.dart';
 
@@ -17,6 +19,9 @@ void main() async {
   await windowManager.ensureInitialized();
 
   await windowManager.setPreventClose(true);
+
+  // Initialize localization before app starts
+  await AppLocalization().initialize();
 
   const windowOptions = WindowOptions(
     size: Size(1000, 700),
@@ -57,6 +62,9 @@ class _MyAppState extends State<MyApp> with WindowListener {
     super.initState();
 
     windowManager.addListener(this);
+    
+    // Initialize theme only (localization is initialized in main)
+    AppTheme().initialize();
 
     print("HRMS STARTED");
   }
@@ -77,32 +85,48 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => AttendanceCubit(navigatorKey)..loadInitialStatus(),
-        ),
-         BlocProvider<LoginCubit>(
-          create: (_) => LoginCubit(),
-        ),
-      ],
+    return AnimatedBuilder(
+      animation: AppTheme(),
+      builder: (context, child) {
+        return AnimatedBuilder(
+          animation: AppLocalization(),
+          builder: (context, child) {
+            return MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (_) => AttendanceCubit(navigatorKey)..loadInitialStatus(),
+                ),
+                 BlocProvider<LoginCubit>(
+                  create: (_) => LoginCubit(),
+                ),
+              ],
 
-      child: MaterialApp(
-        navigatorKey: navigatorKey,
+              child: MaterialApp(
+                navigatorKey: navigatorKey,
 
-        debugShowCheckedModeBanner: false,
+                debugShowCheckedModeBanner: false,
 
-        routes: Routes.getAll(),
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: AppTheme().isDarkMode ? ThemeMode.dark : ThemeMode.light,
 
-        home: const SplashScreen(),
-      ),
+                // Localization setup
+                locale: AppLocalization().currentLocale,
+                supportedLocales: AppLocalization.supportedLocales,
+                localizationsDelegates: AppLocalization.localizationsDelegates,
+
+                routes: Routes.getAll(),
+
+                home: const SplashScreen(),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
 
-/// =====================================================
-/// SPLASH
-/// =====================================================
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -140,7 +164,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.background,
 
       body: Center(
         child: SizedBox(
@@ -148,7 +172,15 @@ class _SplashScreenState extends State<SplashScreen> {
 
           height: 180,
 
-          child: Image.asset(AppImages.logo, fit: BoxFit.fill),
+          child: AnimatedBuilder(
+  animation: AppTheme(),
+  builder: (context, child) {
+    return Image.asset(
+      AppTheme().isDarkMode ? AppImages.logo : AppImages.logoDark,
+      fit: BoxFit.fill,
+    );
+  },
+),
         ),
       ),
     );

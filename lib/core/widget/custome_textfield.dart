@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hrms_desktop/core/constants/app_colors.dart';
 
 class CustomTextFormField extends StatelessWidget {
   final String? label;
@@ -39,8 +38,8 @@ class CustomTextFormField extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               label!,
-              style:  TextStyle(
-                color: AppColors.textGrey,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -48,9 +47,9 @@ class CustomTextFormField extends StatelessWidget {
           ),
         Container(
           decoration: BoxDecoration(
-            color: fillColor ?? AppColors.inputBg,
+            color: fillColor ?? Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: errorText != null ? Border.all(color: AppColors.red, width: 1) : null,
+            border: errorText != null ? Border.all(color: Theme.of(context).colorScheme.error, width: 1) : null,
           ),
           child: TextFormField(
             controller: controller,
@@ -59,12 +58,12 @@ class CustomTextFormField extends StatelessWidget {
             obscureText: obscureText,
             keyboardType: keyboardType,
             decoration: InputDecoration(
-              prefixIcon: Icon(prefixIcon, color: AppColors.iconGrey),
+              prefixIcon: Icon(prefixIcon, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
               suffixIcon: suffixIcon,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               hintText: hintText,
-              hintStyle: const TextStyle(color: AppColors.iconGrey, fontSize: 14),
+              hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), fontSize: 14),
             ),
           ),
         ),
@@ -73,7 +72,7 @@ class CustomTextFormField extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, top: 4),
             child: Text(
               errorText!,
-              style: const TextStyle(color: AppColors.red, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
             ),
           ),
       ],

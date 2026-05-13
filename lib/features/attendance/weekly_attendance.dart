@@ -49,7 +49,7 @@ class _WeeklyAttendanceChartState extends State<WeeklyAttendanceChart> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -62,9 +62,9 @@ class _WeeklyAttendanceChartState extends State<WeeklyAttendanceChart> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Weekly Attendance',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 20),
 
@@ -82,7 +82,7 @@ class _WeeklyAttendanceChartState extends State<WeeklyAttendanceChart> {
                   children: [
                     Text(
                       '${data['hours']}h',
-                      style: const TextStyle(fontSize: 10),
+                      style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
                     ),
                     const SizedBox(height: 6),
 
@@ -102,8 +102,8 @@ class _WeeklyAttendanceChartState extends State<WeeklyAttendanceChart> {
                               height: value,
                               decoration: BoxDecoration(
                                 color: targetHeight == 0
-                                    ? Colors.grey.shade300
-                                    : const Color(0xFF35A2EB),
+                                    ? Theme.of(context).colorScheme.onSurface.withOpacity(0.3)
+                                    : Theme.of(context).colorScheme.primary,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             );
@@ -113,7 +113,7 @@ class _WeeklyAttendanceChartState extends State<WeeklyAttendanceChart> {
                     ),
 
                     const SizedBox(height: 8),
-                    Text(data['day'] as String),
+                    Text(data['day'] as String, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                   ],
                 );
               }),

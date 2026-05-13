@@ -1,5 +1,28 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
+import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
+import 'package:hrms_desktop/features/attendance/cubit/attendance_state.dart';
+import 'package:hrms_desktop/features/attendance/cubit/attendance_report_cubit.dart';
+import 'package:hrms_desktop/features/attendance/cubit/attendance_report_state.dart';
+import 'package:hrms_desktop/core/services/app_usage_service.dart';
+
+class AppUsageData {
+  final IconData icon;
+  final Color color;
+  final Duration timeSpent;
+  final String category;
+
+  const AppUsageData({
+    required this.icon,
+    required this.color,
+    required this.timeSpent,
+    required this.category,
+  });
+}
 
 class ProductivityPage extends StatefulWidget {
   const ProductivityPage({super.key});
@@ -10,6 +33,137 @@ class ProductivityPage extends StatefulWidget {
 
 class _ProductivityPageState extends State<ProductivityPage> {
   DateTime _selectedDate = DateTime.now();
+// Get real app usage data from AppUsageService
+List<AppUsageInfo> get _appUsageList {
+
+  final usageData =
+      AppUsageService()
+          .getUsageData();
+
+  // DEBUG
+  print(
+    "APP USAGE DATA => $usageData",
+  );
+
+  // EMPTY CHECK
+  if (usageData.isEmpty) {
+
+    return [
+      AppUsageInfo(
+        appName: "No Data",
+        timeSpent:
+            Duration.zero,
+        category: "Waiting",
+        icon:
+            Icons.hourglass_empty,
+        color:
+            Colors.grey,
+      ),
+    ];
+  }
+
+  return usageData.entries.map((entry) {
+
+    final appName =
+        entry.key;
+
+    final timeSpent =
+        entry.value;
+
+    final category =
+        AppUsageService()
+            .getAppCategory(
+      appName,
+    );
+
+    final icon =
+        AppUsageService()
+            .getAppIcon(
+      appName,
+    );
+
+    final color =
+        AppUsageService()
+            .getAppColor(
+      category,
+    );
+
+    // CUSTOM ICON
+    IconData appIcon = icon;
+
+    if (appName
+        .toLowerCase()
+        .contains(
+          'youtube',
+        )) {
+
+      appIcon =
+          Icons.play_circle;
+    }
+
+    return AppUsageInfo(
+      appName: appName,
+      timeSpent: timeSpent,
+      category: category,
+      icon: appIcon,
+      color: color,
+    );
+
+  }).toList()
+
+    ..sort(
+      (a, b) => b.timeSpent.compareTo(
+        a.timeSpent,
+      ),
+    );
+}
+  // Calculate weekly productivity data from attendance records
+  Map<String, double> _calculateWeeklyProductivity(List<dynamic> records) {
+    final Map<String, double> weeklyData = {
+      'Mon': 0.0,
+      'Tue': 0.0,
+      'Wed': 0.0,
+      'Thu': 0.0,
+      'Fri': 0.0,
+      'Sat': 0.0,
+      'Sun': 0.0,
+    };
+
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+
+    for (final record in records) {
+      try {
+        final checkInTime = record['check_in'];
+        if (checkInTime == null || checkInTime == false) continue;
+
+        DateTime checkIn = DateTime.parse(checkInTime.toString().replaceAll(' ', 'T') + 'Z').toLocal();
+        
+        // Only include records from current week
+        if (checkIn.isAfter(weekStart)) {
+          final dayName = DateFormat('EEE').format(checkIn);
+          final workedHours = (record['worked_hours'] ?? 0.0).toDouble();
+          
+          // Calculate productivity as percentage (assuming 8-hour workday)
+          final productivity = (workedHours / 8.0 * 100).clamp(0.0, 100.0);
+          
+          if (weeklyData.containsKey(dayName)) {
+            weeklyData[dayName] = productivity;
+          }
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    // If no data for current week, use current productivity as estimate
+    if (weeklyData.values.every((value) => value == 0.0)) {
+      final currentProductivity = 75.0; // Default fallback
+      weeklyData.updateAll((key, value) => currentProductivity * (0.8 + (Random().nextDouble() * 0.4)));
+    }
+
+    return weeklyData;
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -41,30 +195,34 @@ class _ProductivityPageState extends State<ProductivityPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return BlocBuilder<AttendanceCubit, AttendanceState>(
+      builder: (context, attendanceState) {
+        return BlocBuilder<AttendanceReportCubit, AttendanceReportState>(
+          builder: (context, reportState) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
           /// HEADER
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Productivity 📊",
+                    AppLocalizations.of(context).productivity + " 📊",
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   SizedBox(height: 6),
                   Text(
-                    "Track your daily performance",
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                    AppLocalizations.of(context).trackAttendanceAndProductivity,
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 16),
                   ),
                 ],
               ),
@@ -76,7 +234,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
@@ -109,7 +267,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -124,11 +282,11 @@ class _ProductivityPageState extends State<ProductivityPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "Today's Score",
+                          Text(
+                            AppLocalizations.of(context).todayScore,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -153,76 +311,21 @@ class _ProductivityPageState extends State<ProductivityPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        "85%",
+                      Text(
+                        "${attendanceState.productivityPercent.toStringAsFixed(1)}%",
                         style: TextStyle(
                           fontSize: 44,
                           fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: 0.85,
-                          minHeight: 8,
-                          backgroundColor: Colors.grey.withOpacity(0.2),
-                          valueColor: AlwaysStoppedAnimation(
-                            Colors.deepPurple.shade300,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-
-              /// TASKS COMPLETED
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 14,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Tasks Completed",
+                      Text(
+                        "Good Performance",
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        "12/15",
-                        style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: 0.80,
-                          minHeight: 8,
-                          backgroundColor: Colors.grey.withOpacity(0.2),
-                          valueColor: AlwaysStoppedAnimation(
-                            Colors.blue.shade300,
-                          ),
                         ),
                       ),
                     ],
@@ -236,7 +339,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -248,33 +351,125 @@ class _ProductivityPageState extends State<ProductivityPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Focus Time",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context).focusTime,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              "↑ 8%",
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        "6.5h",
+                      Text(
+                        "${attendanceState.productiveHours.toStringAsFixed(1)}h",
                         style: TextStyle(
-                          fontSize: 40,
+                          fontSize: 44,
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: 0.65,
-                          minHeight: 8,
-                          backgroundColor: Colors.grey.withOpacity(0.2),
-                          valueColor: AlwaysStoppedAnimation(
-                            Colors.orange.shade300,
+                      Text(
+                        "Deep Work",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+
+              /// TASKS COMPLETED
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 14,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context).tasksCompleted,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              "↑ 12%",
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "12/15",
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        "On Track",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -286,179 +481,426 @@ class _ProductivityPageState extends State<ProductivityPage> {
 
           const SizedBox(height: 30),
 
-          /// DAILY PRODUCTIVITY CHART
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Weekly Productivity Trend",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  height: 200,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _productivityBar("Mon", 65),
-                      _productivityBar("Tue", 78),
-                      _productivityBar("Wed", 85),
-                      _productivityBar("Thu", 92),
-                      _productivityBar("Fri", 88),
-                      _productivityBar("Sat", 45),
-                      _productivityBar("Sun", 52),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 30),
-
-          /// RECENT TASKS
-          const Text(
-            "Today's Tasks",
+          /// APP USAGE TRACKING
+          Text(
+            "App Usage Today",
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
 
           const SizedBox(height: 16),
 
-          _taskCard("Complete project proposal", "12:30 PM", true, Colors.green),
-          _taskCard("Review team feedback", "2:00 PM", true, Colors.green),
-          _taskCard("Prepare presentation", "3:30 PM", false, Colors.orange),
-          _taskCard("Client meeting", "4:00 PM", false, Colors.red),
-          _taskCard("Update documentation", "5:00 PM", false, Colors.grey),
-        ],
-      ),
-    );
-  }
+        
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 1.2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemCount: _appUsageList.length,
+            itemBuilder: (context, index) {
+              final appData = _appUsageList[index];
+              
+              return _appUsageCard(
+                context,
+                appData.appName,
+                AppUsageData(
+                  icon: appData.icon,
+                  color: appData.color,
+                  timeSpent: appData.timeSpent,
+                  category: appData.category,
+                ),
+              );
+            },
+          ),
 
-  static Widget _productivityBar(String day, int value) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          width: 30,
-          height: (value / 100) * 150,
-          decoration: BoxDecoration(
-            color: Colors.deepPurple.withOpacity(0.7),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
+          const SizedBox(height: 30),
+
+        
+          Text(
+            AppLocalizations.of(context).todaysTasks,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          day,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey,
-          ),
-        ),
-      ],
-    );
-  }
 
-  static Widget _taskCard(String title, String time, bool completed, Color statusColor) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: statusColor.withOpacity(0.2),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 8,
+          const SizedBox(height: 16),
+
+          /// TASK LIST
+          ...reportState.records.map((record) {
+            final taskTitle = record['task_title']?.toString() ?? 'Untitled Task';
+            final taskTime = record['task_time']?.toString() ?? '0h 0m';
+            final isCompleted = record['is_completed'] ?? false;
+            final statusColor = isCompleted ? Colors.green : Colors.orange;
+
+            return _taskCard(context, taskTitle, taskTime, isCompleted, statusColor);
+          }).toList(),
+
+          const SizedBox(height: 30),
+
+          /// WEEKLY PRODUCTIVITY CHART
+          Text(
+            "Weekly Productivity",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
+
+          const SizedBox(height: 16),
+
+          /// CHART
           Container(
-            width: 20,
-            height: 20,
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: statusColor,
-                width: 2,
-              ),
-              color: completed ? statusColor : Colors.transparent,
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                ),
+              ],
             ),
-            child: completed
-                ? Icon(
-                    Icons.check,
-                    size: 14,
-                    color: Colors.white,
-                  )
-                : null,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                    decoration: completed
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _productivityBar(context, "Mon", _calculateWeeklyProductivity(reportState.records)['Mon']!.round()),
+                    _productivityBar(context, "Tue", _calculateWeeklyProductivity(reportState.records)['Tue']!.round()),
+                    _productivityBar(context, "Wed", _calculateWeeklyProductivity(reportState.records)['Wed']!.round()),
+                    _productivityBar(context, "Thu", _calculateWeeklyProductivity(reportState.records)['Thu']!.round()),
+                    _productivityBar(context, "Fri", _calculateWeeklyProductivity(reportState.records)['Fri']!.round()),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _productivityBar(context, "Sat", _calculateWeeklyProductivity(reportState.records)['Sat']!.round()),
+                    _productivityBar(context, "Sun", _calculateWeeklyProductivity(reportState.records)['Sun']!.round()),
+                  ],
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              time,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: statusColor,
-              ),
-            ),
-          ),
         ],
       ),
     );
+          },
+        );
+      },
+    );
   }
+
+Widget productivityBar(BuildContext context, String day, int percentage) {
+  final color = _getProductivityColor(percentage / 100.0);
+  final label = _getProductivityLabel(percentage / 100.0);
+
+  return Column(
+    children: [
+      Text(
+        day,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
+      const SizedBox(height: 4),
+      Container(
+        height: 8,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: LinearProgressIndicator(
+          value: percentage / 100.0,
+          minHeight: 8,
+          backgroundColor: Colors.grey.withOpacity(0.2),
+          valueColor: AlwaysStoppedAnimation<Color>(
+            Colors.deepPurple.shade300,
+          ),
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        "$percentage%",
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
+    ],
+  );
+}
+
+Color _getProductivityColor(double productivityRatio) {
+  if (productivityRatio >= 0.8) return Colors.green;
+  if (productivityRatio >= 0.6) return Colors.orange;
+  return Colors.red;
+}
+
+String _getProductivityLabel(double productivityRatio) {
+  if (productivityRatio >= 0.8) return "Excellent";
+  if (productivityRatio >= 0.6) return "Good";
+  return "Needs Improvement";
+}
+
+Widget _taskCard(BuildContext context, String title, String time, bool completed, Color statusColor) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: statusColor.withOpacity(0.2),
+        width: 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 12,
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              completed ? Icons.check_circle_rounded : Icons.circle_rounded,
+              color: statusColor,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    time,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    ));
+}
+
+Widget _appUsageCard(BuildContext context, String appName, AppUsageData appData) {
+  final hours = appData.timeSpent.inHours;
+  final minutes = appData.timeSpent.inMinutes.remainder(60);
+  
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: appData.color.withOpacity(0.2),
+        width: 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: appData.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                appData.icon,
+                color: appData.color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    appName,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    appData.category,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "${hours}h ${minutes}m",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getProductivityColor(appData.timeSpent.inHours / 8.0),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _getProductivityLabel(appData.timeSpent.inHours / 8.0),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+Widget _productivityBar(
+  BuildContext context,
+  String day,
+  int percentage,
+) {
+  final color =
+      _getProductivityColor(
+    percentage / 100.0,
+  );
+
+  return SizedBox(
+    width: 90,
+    child: Column(
+      mainAxisSize:
+          MainAxisSize.min,
+      children: [
+        Text(
+          day,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight:
+                FontWeight.w500,
+            color: Theme.of(
+              context,
+            )
+                .colorScheme
+                .onSurface
+                .withOpacity(0.6),
+          ),
+        ),
+
+        const SizedBox(
+          height: 6,
+        ),
+
+        ClipRRect(
+          borderRadius:
+              BorderRadius.circular(
+            4,
+          ),
+
+          child:
+              LinearProgressIndicator(
+            value:
+                percentage / 100.0,
+
+            minHeight: 8,
+
+            backgroundColor:
+                Colors.grey
+                    .withOpacity(
+              0.2,
+            ),
+
+            valueColor:
+                AlwaysStoppedAnimation<
+                    Color>(
+              color,
+            ),
+          ),
+        ),
+
+        const SizedBox(
+          height: 6,
+        ),
+
+        Text(
+          "$percentage%",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight:
+                FontWeight.w600,
+            color: Theme.of(
+              context,
+            )
+                .colorScheme
+                .onSurface,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+// Color _getProductivityColor(double productivityRatio) {
+//   if (productivityRatio >= 0.8) return Colors.green;
+//   if (productivityRatio >= 0.6) return Colors.orange;
+//   return Colors.red;
+// }
+
 }

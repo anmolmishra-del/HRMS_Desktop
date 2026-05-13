@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 
 class LanguagePage extends StatefulWidget {
   const LanguagePage({super.key});
@@ -8,21 +9,21 @@ class LanguagePage extends StatefulWidget {
 }
 
 class _LanguageSelectionScreenState extends State<LanguagePage> {
-  int selectedIndex = 3; // Default selected Telugu
+  final AppLocalization _appLocalization = AppLocalization();
 
   final List<Map<String, String>> languages = [
-    {"native": "हिन्दी", "english": "Hindi"},
-    {"native": "मराठी", "english": "Marathi"},
-    {"native": "தமிழ்", "english": "Tamil"},
-    {"native": "తెలుగు", "english": "Telugu"},
-    {"native": "বাংলা", "english": "Bengali"},
-    {"native": "ಕನ್ನಡ", "english": "Kannada"},
-    {"native": "ગુજરાતી", "english": "Gujarati"},
-    {"native": "ਪੰਜਾਬੀ", "english": "Punjabi"},
+    {"code": "en", "native": "English", "english": "English"},
+    {"code": "hi", "native": "हिन्दी", "english": "Hindi"},
+    {"code": "te", "native": "తెలుగు", "english": "Telugu"},
   ];
 
   @override
   Widget build(BuildContext context) {
+    // Find current selected index based on current locale
+    final currentLanguageCode = _appLocalization.currentLanguageCode;
+    int selectedIndex = languages.indexWhere((lang) => lang["code"] == currentLanguageCode);
+    if (selectedIndex == -1) selectedIndex = 0; // Default to English if not found
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       body: SafeArea(
@@ -51,7 +52,8 @@ class _LanguageSelectionScreenState extends State<LanguagePage> {
                     return GestureDetector(
                       onTap: () {
                         setState(() {
-                          selectedIndex = index;
+                          // Update the locale when language is selected
+                          _appLocalization.setLocaleByLanguageCode(lang["code"]!);
                         });
                       },
                       child: Container(
@@ -124,14 +126,20 @@ class _LanguageSelectionScreenState extends State<LanguagePage> {
                 margin: const EdgeInsets.only(bottom: 25),
                 child: ElevatedButton(
                   onPressed: () {
-                    final selectedLanguage =
-                        languages[selectedIndex]["english"];
+                    // Language is already saved when selected, just show confirmation and go back
+                    final selectedLanguage = languages.firstWhere(
+                      (lang) => lang["code"] == _appLocalization.currentLanguageCode,
+                      orElse: () => languages[0],
+                    )["english"];
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text("$selectedLanguage language selected"),
                       ),
                     );
+                    
+                    // Navigate back after selection
+                    Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
