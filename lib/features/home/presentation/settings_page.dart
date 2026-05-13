@@ -1,5 +1,9 @@
+import 'dart:io' as dart_io;
+import 'dart:ui';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,106 +17,86 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
-  bool _biometricEnabled = false;
-  bool _autoCheckInEnabled = false;
   String _selectedLanguage = 'English';
-  String _selectedTheme = 'Default';
 
-  // Available theme backgrounds
-  final List<Map<String, dynamic>> _themeOptions = [
-    {
-      'name': 'Default',
-      'description': 'Clean white background',
-      'preview': Colors.white,
-    },
-    {
-      'name': 'Nature',
-      'description': 'Peaceful nature landscape',
-      'preview': const Color(0xFFE8F5E8),
-    },
-    {
-      'name': 'Ocean',
-      'description': 'Calm ocean waves',
-      'preview': const Color(0xFFE3F2FD),
-    },
-    {
-      'name': 'Mountain',
-      'description': 'Majestic mountain peaks',
-      'preview': const Color(0xFFF3E5F5),
-    },
-    {
-      'name': 'City',
-      'description': 'Urban city skyline',
-      'preview': const Color(0xFFFCE4EC),
-    },
-    {
-      'name': 'Abstract',
-      'description': 'Modern abstract patterns',
-      'preview': const Color(0xFFE8EAF6),
-    },
-  ];
+  Future<void> _pickBackgroundImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+    if (result != null && result.files.single.path != null) {
+      context.read<ThemeCubit>().setBackgroundImage(result.files.single.path!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          /// HEADER
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return BlocBuilder<ThemeCubit, ThemeState>(
+      builder: (context, themeState) {
+        final isGlass = themeState.hasBackground;
+        final isDark = themeState.themeMode == ThemeMode.dark;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              /// HEADER
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Settings ⚙️",
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Settings ⚙️",
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        "Customize your experience",
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 6),
-                  Text(
-                    "Customize your experience",
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isGlass 
+                        ? (isDark ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.3))
+                        : Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: isGlass ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.settings_suggest_rounded),
+                        const SizedBox(width: 10),
+                        Text(
+                          "v1.0.0",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.settings_suggest_rounded),
-                    const SizedBox(width: 10),
-                    Text(
-                      "v1.0.0",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
 
           const SizedBox(height: 30),
 
@@ -157,8 +141,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: "Dark Mode",
                 subtitle: "Switch to dark theme",
                 icon: Icons.dark_mode_rounded,
-                value: _darkModeEnabled,
-                onChanged: (value) => setState(() => _darkModeEnabled = value),
+                value: themeState.themeMode == ThemeMode.dark,
+                onChanged: (value) {
+                  context.read<ThemeCubit>().toggleTheme(value);
+                },
               ),
               const SizedBox(height: 16),
               _buildDropdownTile(
@@ -170,43 +156,43 @@ class _SettingsPageState extends State<SettingsPage> {
                 onChanged: (value) => setState(() => _selectedLanguage = value!),
               ),
               const SizedBox(height: 16),
-              _buildThemeSelector(),
+              _buildThemeSelector(themeState),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          /// WORK SETTINGS
-          _buildSectionCard(
-            title: "Work Settings",
-            icon: Icons.work_rounded,
-            children: [
-              _buildSwitchTile(
-                title: "Biometric Authentication",
-                subtitle: "Use fingerprint/face ID for check-in/out",
-                icon: Icons.fingerprint_rounded,
-                value: _biometricEnabled,
-                onChanged: (value) => setState(() => _biometricEnabled = value),
-              ),
-              const SizedBox(height: 16),
-              _buildSwitchTile(
-                title: "Auto Check-in",
-                subtitle: "Automatically check-in when opening the app",
-                icon: Icons.auto_mode_rounded,
-                value: _autoCheckInEnabled,
-                onChanged: (value) => setState(() => _autoCheckInEnabled = value),
-              ),
-              const SizedBox(height: 16),
-              _buildSettingTile(
-                title: "Working Hours",
-                subtitle: "Set your default working hours",
-                icon: Icons.schedule_rounded,
-                onTap: () {},
-              ),
-            ],
-          ),
+          // /// WORK SETTINGS
+          // _buildSectionCard(
+          //   title: "Work Settings",
+          //   icon: Icons.work_rounded,
+          //   children: [
+          //     _buildSwitchTile(
+          //       title: "Biometric Authentication",
+          //       subtitle: "Use fingerprint/face ID for check-in/out",
+          //       icon: Icons.fingerprint_rounded,
+          //       value: _biometricEnabled,
+          //       onChanged: (value) => setState(() => _biometricEnabled = value),
+          //     ),
+          //     const SizedBox(height: 16),
+          //     _buildSwitchTile(
+          //       title: "Auto Check-in",
+          //       subtitle: "Automatically check-in when opening the app",
+          //       icon: Icons.auto_mode_rounded,
+          //       value: _autoCheckInEnabled,
+          //       onChanged: (value) => setState(() => _autoCheckInEnabled = value),
+          //     ),
+          //     const SizedBox(height: 16),
+          //     _buildSettingTile(
+          //       title: "Working Hours",
+          //       subtitle: "Set your default working hours",
+          //       icon: Icons.schedule_rounded,
+          //       onTap: () {},
+          //     ),
+          //   ],
+          // ),
 
-          const SizedBox(height: 24),
+          // const SizedBox(height: 24),
 
           /// DATA & PRIVACY
           _buildSectionCard(
@@ -269,65 +255,87 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 24),
 
           /// LOGOUT SECTION
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 14,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: isGlass ? 10 : 0, sigmaY: isGlass ? 10 : 0),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: isGlass 
+                    ? (isDark ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.3))
+                    : Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: isGlass ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 14,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _buildSettingTile(
-                  title: "Logout",
-                  subtitle: "Sign out from your account",
-                  icon: Icons.logout_rounded,
-                  iconColor: Colors.red,
-                  textColor: Colors.red,
-                  onTap: () async {
-                    await context.read<LoginCubit>().logout();
-                    if (context.mounted) {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/login',
-                        (route) => false,
-                      );
-                    }
-                  },
+                child: Column(
+                  children: [
+                    _buildSettingTile(
+                      title: "Logout",
+                      subtitle: "Sign out from your account",
+                      icon: Icons.logout_rounded,
+                      iconColor: Colors.red,
+                      textColor: Colors.red,
+                      onTap: () async {
+                        await context.read<LoginCubit>().logout();
+                        if (context.mounted) {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/login',
+                            (route) => false,
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
 
-          const SizedBox(height: 40),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 40),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildSectionCard({
     required String title,
     required IconData icon,
     required List<Widget> children,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 14,
+    final themeState = context.watch<ThemeCubit>().state;
+    final isGlass = themeState.hasBackground;
+    final isDark = themeState.themeMode == ThemeMode.dark;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: isGlass ? 10 : 0, sigmaY: isGlass ? 10 : 0),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isGlass 
+              ? (isDark ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.3))
+              : Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: isGlass ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 14,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -347,10 +355,10 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF111827),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -359,8 +367,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ...children,
         ],
       ),
-    );
-  }
+    ),
+     ) );
+}
 
   Widget _buildProfileTile() {
     return FutureBuilder(
@@ -404,10 +413,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     Text(
                       employeeName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF111827),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -477,7 +486,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: textColor ?? const Color(0xFF111827),
+                      color: textColor ?? Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -529,10 +538,10 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF111827),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
@@ -584,10 +593,10 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF111827),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
@@ -630,10 +639,53 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildThemeSelector() {
+  Widget _buildThemeSelector(ThemeState themeState) {
+    final presets = [
+      PresetBackground.none,
+      PresetBackground.nature,
+      PresetBackground.ocean,
+      PresetBackground.mountain,
+      PresetBackground.city,
+      PresetBackground.abstract_,
+    ];
+
+    final presetLabels = {
+      PresetBackground.none:      'None',
+      PresetBackground.nature:    'Nature',
+      PresetBackground.ocean:     'Ocean',
+      PresetBackground.mountain:  'Mountain',
+      PresetBackground.city:      'City',
+      PresetBackground.abstract_: 'Abstract',
+    };
+
+    final presetColors = {
+      PresetBackground.none:      Colors.grey.shade300,
+      PresetBackground.nature:    const Color(0xFF4CAF50),
+      PresetBackground.ocean:     const Color(0xFF1E88E5),
+      PresetBackground.mountain:  const Color(0xFF7E57C2),
+      PresetBackground.city:      const Color(0xFFE91E63),
+      PresetBackground.abstract_: const Color(0xFF3F51B5),
+    };
+
+    final presetGradients = {
+      PresetBackground.none:      [Colors.grey.shade200, Colors.grey.shade400],
+      PresetBackground.nature:    [const Color(0xFF66BB6A), const Color(0xFF2E7D32)],
+      PresetBackground.ocean:     [const Color(0xFF42A5F5), const Color(0xFF0D47A1)],
+      PresetBackground.mountain:  [const Color(0xFFAB47BC), const Color(0xFF4A148C)],
+      PresetBackground.city:      [const Color(0xFFEC407A), const Color(0xFF880E4F)],
+      PresetBackground.abstract_: [const Color(0xFF5C6BC0), const Color(0xFF1A237E)],
+    };
+
+    final activePreset = themeState.isAssetBackground
+        ? themeState.preset
+        : (themeState.hasBackground ? null : PresetBackground.none);
+
+    final hasCustom = themeState.customImagePath.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header row
         Row(
           children: [
             Container(
@@ -642,14 +694,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: Colors.deepPurple.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.palette_rounded,
-                color: Colors.deepPurple,
-                size: 20,
-              ),
+              child: const Icon(Icons.wallpaper_rounded, color: Colors.deepPurple, size: 20),
             ),
             const SizedBox(width: 16),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -657,102 +705,113 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(height: 2),
                 Text(
-                  "Choose your preferred background",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  hasCustom
+                      ? "Custom photo is active"
+                      : (activePreset == PresetBackground.none || activePreset == null)
+                          ? "Choose a preset or add your photo"
+                          : "${presetLabels[activePreset]} preset active",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
           ],
         ),
+
         const SizedBox(height: 16),
+
+        // ── Preset tiles row ──────────────────────────────────
         SizedBox(
-          height: 120,
+          height: 90,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _themeOptions.length,
+            itemCount: presets.length,
             itemBuilder: (context, index) {
-              final theme = _themeOptions[index];
-              final isSelected = theme['name'] == _selectedTheme;
+              final p = presets[index];
+              final isSelected = !hasCustom && activePreset == p;
+              final gradient = presetGradients[p]!;
 
               return GestureDetector(
-                onTap: () => setState(() => _selectedTheme = theme['name']),
-                child: Container(
-                  width: 100,
-                  margin: const EdgeInsets.only(right: 12),
+                onTap: () => context.read<ThemeCubit>().setPreset(p),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 78,
+                  margin: const EdgeInsets.only(right: 10),
                   decoration: BoxDecoration(
-                    color: theme['preview'],
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: p == PresetBackground.none
+                        ? null
+                        : LinearGradient(
+                            colors: gradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    color: p == PresetBackground.none
+                        ? Theme.of(context).colorScheme.surface
+                        : null,
                     border: Border.all(
-                      color: isSelected ? Colors.deepPurple : Colors.grey.shade300,
-                      width: isSelected ? 2 : 1,
+                      color: isSelected
+                          ? Colors.deepPurple
+                          : Colors.transparent,
+                      width: 2.5,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.deepPurple.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                              color: (presetColors[p] ?? Colors.deepPurple).withOpacity(0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ]
                         : null,
                   ),
                   child: Stack(
                     children: [
-                      // Background pattern simulation
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(11),
-                            gradient: LinearGradient(
-                              colors: [
-                                theme['preview'].withOpacity(0.3),
-                                theme['preview'].withOpacity(0.7),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                      // Label at bottom
+                      Positioned(
+                        bottom: 8,
+                        left: 0,
+                        right: 0,
+                        child: Text(
+                          presetLabels[p]!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: p == PresetBackground.none
+                                ? Theme.of(context).colorScheme.onSurface.withOpacity(0.7)
+                                : Colors.white,
+                            shadows: p != PresetBackground.none
+                                ? [const Shadow(color: Colors.black38, blurRadius: 4)]
+                                : null,
                           ),
                         ),
                       ),
-                      // Theme name and checkmark
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              theme['name'],
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
+                      // Check icon when selected
+                      if (isSelected)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
                             ),
-                            if (isSelected)
-                              Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Colors.deepPurple,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.check,
-                                  size: 12,
-                                  color: Colors.white,
-                                ),
-                              ),
-                          ],
+                            child: const Icon(Icons.check, size: 10, color: Colors.deepPurple),
+                          ),
                         ),
-                      ),
+                      // None icon
+                      if (p == PresetBackground.none)
+                        const Positioned(
+                          top: 12,
+                          left: 0,
+                          right: 0,
+                          child: Icon(Icons.block_rounded, color: Colors.grey, size: 22),
+                        ),
                     ],
                   ),
                 ),
@@ -760,7 +819,97 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
         ),
+
+        const SizedBox(height: 14),
+
+        // ── Custom photo row ──────────────────────────────────
+        Row(
+          children: [
+            // Preview thumbnail
+            if (hasCustom) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  dart_io.File(themeState.customImagePath),
+                  width: 72,
+                  height: 58,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+            // Add / Change Photo button
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickBackgroundImage,
+                child: Container(
+                  height: 58,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: hasCustom
+                          ? Colors.deepPurple
+                          : Colors.deepPurple.withOpacity(0.35),
+                      width: hasCustom ? 2 : 1.5,
+                    ),
+                    color: hasCustom
+                        ? Colors.deepPurple.withOpacity(0.08)
+                        : Colors.deepPurple.withOpacity(0.04),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        hasCustom
+                            ? Icons.change_circle_outlined
+                            : Icons.add_photo_alternate_outlined,
+                        color: Colors.deepPurple,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        hasCustom ? "Change Photo" : "Add Custom Photo",
+                        style: const TextStyle(
+                          color: Colors.deepPurple,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Remove custom photo button
+            if (hasCustom) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => context.read<ThemeCubit>().clearBackgroundImage(),
+                child: Container(
+                  width: 52,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withOpacity(0.4), width: 1.5),
+                    color: Colors.red.withOpacity(0.05),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22),
+                      SizedBox(height: 2),
+                      Text("Remove", style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }
 }
+
+

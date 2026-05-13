@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:hrms_desktop/core/constants/app_images.dart';
+import 'package:hrms_desktop/core/theme/app_theme.dart';
+import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/routes.dart';
 
@@ -79,18 +82,28 @@ class _MyAppState extends State<MyApp> with WindowListener {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
+          create: (_) => ThemeCubit(),
+        ),
+        BlocProvider(
           create: (_) => AttendanceCubit(navigatorKey)..loadInitialStatus(),
+        ),
+         BlocProvider<LoginCubit>(
+          create: (_) => LoginCubit(),
         ),
       ],
 
-      child: MaterialApp(
-        navigatorKey: navigatorKey,
-
-        debugShowCheckedModeBanner: false,
-
-        routes: Routes.getAll(),
-
-        home: const SplashScreen(),
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, state) {
+          return MaterialApp(
+            navigatorKey: navigatorKey,
+            debugShowCheckedModeBanner: false,
+            themeMode: state.themeMode,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            routes: Routes.getAll(),
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }
@@ -136,7 +149,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: Center(
         child: SizedBox(

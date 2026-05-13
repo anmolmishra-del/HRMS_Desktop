@@ -20,13 +20,11 @@ class _ProductivityPageState extends State<ProductivityPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: Colors.deepPurple,
               onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
             ),
-            dialogBackgroundColor: Colors.white,
+            dialogBackgroundColor: Theme.of(context).colorScheme.surface,
           ),
           child: child!,
         );
@@ -50,7 +48,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -58,11 +56,11 @@ class _ProductivityPageState extends State<ProductivityPage> {
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-                  SizedBox(height: 6),
-                  Text(
+                  const SizedBox(height: 6),
+                  const Text(
                     "Track your daily performance",
                     style: TextStyle(color: Colors.grey, fontSize: 16),
                   ),
@@ -76,7 +74,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
@@ -109,7 +107,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -184,7 +182,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -236,7 +234,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -291,7 +289,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -304,11 +302,12 @@ class _ProductivityPageState extends State<ProductivityPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Weekly Productivity Trend",
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -335,12 +334,12 @@ class _ProductivityPageState extends State<ProductivityPage> {
           const SizedBox(height: 30),
 
           /// RECENT TASKS
-          const Text(
+          Text(
             "Today's Tasks",
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
 
@@ -356,7 +355,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
     );
   }
 
-  static Widget _productivityBar(String day, int value) {
+  Widget _productivityBar(String day, int value) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -374,22 +373,22 @@ class _ProductivityPageState extends State<ProductivityPage> {
         const SizedBox(height: 8),
         Text(
           day,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
       ],
     );
   }
 
-  static Widget _taskCard(String title, String time, bool completed, Color statusColor) {
+  Widget _taskCard(String title, String time, bool completed, Color statusColor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: statusColor.withOpacity(0.2),
@@ -433,7 +432,7 @@ class _ProductivityPageState extends State<ProductivityPage> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                     decoration: completed
                         ? TextDecoration.lineThrough
                         : TextDecoration.none,

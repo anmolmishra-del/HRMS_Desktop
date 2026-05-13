@@ -1,5 +1,8 @@
+import 'dart:io' as dart_io;
 import 'package:flutter/material.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_state.dart';
@@ -14,6 +17,7 @@ import 'package:hrms_desktop/core/constants/app_colors.dart';
 import 'package:hrms_desktop/features/attendance/attendance_page.dart';
 import 'package:hrms_desktop/features/home/presentation/productivity_page.dart';
 import 'package:hrms_desktop/features/home/presentation/settings_page.dart';
+import 'package:hrms_desktop/core/widget/glass_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -48,12 +52,40 @@ class _HomePageState extends State<HomePage> {
     return BlocProvider(
       create: (context) => AttendanceReportCubit()..fetchReport(),
 
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FB),
-
-        body: SafeArea(
-          child: Row(
-            children: [
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, themeState) {
+          return Scaffold(
+            backgroundColor: themeState.hasBackground
+                ? Colors.transparent
+                : Theme.of(context).scaffoldBackgroundColor,
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  // Background image (preset asset or custom file)
+                  if (themeState.hasBackground)
+                    Positioned.fill(
+                      child: themeState.isAssetBackground
+                          ? Image.asset(
+                              themeState.backgroundImagePath,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(
+                              dart_io.File(themeState.backgroundImagePath),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            ),
+                    ),
+                  // Semi-transparent overlay for readability
+                  if (themeState.hasBackground)
+                    Positioned.fill(
+                      child: Container(
+                        color: themeState.themeMode == ThemeMode.dark
+                            ? Colors.black.withOpacity(0.55)
+                            : Colors.black.withOpacity(0.2),
+                      ),
+                    ),
+                  Row(
+                    children: [
               /// SIDEBAR
               Container(
                 width: 250,
@@ -218,17 +250,18 @@ class _HomePageState extends State<HomePage> {
                                     Spacer(),
                                     IconButton(
                                       onPressed: () async {
+                                        final navigator = Navigator.of(context);
+
                                         await context
                                             .read<LoginCubit>()
                                             .logout();
 
-                                        if (context.mounted) {
-                                          Navigator.pushNamedAndRemoveUntil(
-                                            context,
-                                            '/login',
-                                            (route) => false,
-                                          );
-                                        }
+                                        if (!context.mounted) return;
+
+                                        navigator.pushNamedAndRemoveUntil(
+                                          '/login',
+                                          (route) => false,
+                                        );
                                       },
 
                                       icon: const Icon(
@@ -249,14 +282,20 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              /// PAGE CONTENT
-              Expanded(child: pages[selectedIndex]),
-            ],
-          ),
-        ),
+                      /// PAGE CONTENT
+                      Expanded(child: pages[selectedIndex]),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
+
+
 }
 
 /// DASHBOARD PAGE
@@ -284,7 +323,7 @@ class DashboardContent extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
               children: [
-                const Column(
+                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
@@ -293,14 +332,12 @@ class DashboardContent extends StatelessWidget {
 
                       style: TextStyle(
                         fontSize: 30,
-
                         fontWeight: FontWeight.bold,
-
-                        color: Color(0xFF111827),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
 
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
 
                     Text(
                       "Track attendance and productivity",
@@ -317,8 +354,7 @@ class DashboardContent extends StatelessWidget {
                   ),
 
                   decoration: BoxDecoration(
-                    color: Colors.white,
-
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(18),
 
                     boxShadow: [
@@ -371,36 +407,24 @@ class DashboardContent extends StatelessWidget {
 
                 /// PRODUCTIVITY
                 /// PRODUCTIVITY
-Expanded(
+                Expanded(
+                  child: BlocBuilder<AttendanceCubit, AttendanceState>(
+                    builder: (context, state) {
+                      final productivity = state.productivityPercent
+                          .toStringAsFixed(1);
 
-  child: BlocBuilder<
-      AttendanceCubit,
-      AttendanceState>(
+                      return _statCard(
+                        title: "Productivity",
 
-    builder: (context, state) {
+                        value: "$productivity%",
 
-      final productivity =
-          state
-              .productivityPercent
-              .toStringAsFixed(1);
+                        icon: Icons.pie_chart_rounded,
 
-      return _statCard(
-
-        title: "Productivity",
-
-        value:
-            "$productivity%",
-
-        icon:
-            Icons
-                .pie_chart_rounded,
-
-        color:
-            Colors.deepPurple,
-      );
-    },
-  ),
-),
+                        color: Colors.deepPurple,
+                      );
+                    },
+                  ),
+                ),
 
                 const SizedBox(width: 20),
 
@@ -428,27 +452,9 @@ Expanded(
             const SizedBox(height: 30),
 
             /// GRAPH SECTION
-            Container(
-              width: double.infinity,
-
+            GlassCard(
               padding: const EdgeInsets.all(24),
-
-              decoration: BoxDecoration(
-                color: Colors.white,
-
-                borderRadius: BorderRadius.circular(30),
-
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-
-                    blurRadius: 14,
-
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-
+              borderRadius: 30,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
 
@@ -457,13 +463,12 @@ Expanded(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                     children: [
-                      const Text(
+                      Text(
                         "Weekly Productivity",
-
                         style: TextStyle(
                           fontSize: 22,
-
                           fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
 
@@ -503,19 +508,13 @@ Expanded(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
 
                       children: [
-                        _graphBar("Mon", 80),
-
-                        _graphBar("Tue", 120),
-
-                        _graphBar("Wed", 100),
-
-                        _graphBar("Thu", 170),
-
-                        _graphBar("Fri", 150),
-
-                        _graphBar("Sat", 90),
-
-                        _graphBar("Sun", 60),
+                        _graphBar(context, "Mon", 80),
+                        _graphBar(context, "Tue", 120),
+                        _graphBar(context, "Wed", 100),
+                        _graphBar(context, "Thu", 170),
+                        _graphBar(context, "Fri", 150),
+                        _graphBar(context, "Sat", 90),
+                        _graphBar(context, "Sun", 60),
                       ],
                     ),
                   ),
@@ -526,15 +525,13 @@ Expanded(
             const SizedBox(height: 30),
 
             /// RECENT ACTIVITIES
-            const Text(
+            Text(
               "Recent Activities",
 
               style: TextStyle(
                 fontSize: 24,
-
                 fontWeight: FontWeight.bold,
-
-                color: Color(0xFF111827),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
 
@@ -579,7 +576,6 @@ Expanded(
     );
   }
 }
-
 
 class AttendancePage extends StatelessWidget {
   const AttendancePage({super.key});
@@ -691,8 +687,7 @@ class _ModernActivityTile extends StatelessWidget {
       padding: const EdgeInsets.all(20),
 
       decoration: BoxDecoration(
-        color: Colors.white,
-
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
 
         boxShadow: [
@@ -838,30 +833,28 @@ Widget _statCard({
   );
 }
 
-Widget _graphBar(String day, double height) {
+Widget _graphBar(BuildContext context, String day, double height) {
   return Column(
     mainAxisAlignment: MainAxisAlignment.end,
-
     children: [
       Container(
         width: 42,
         height: height,
-
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Colors.deepPurple, Colors.purpleAccent],
-
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
           ),
-
           borderRadius: BorderRadius.circular(16),
         ),
       ),
-
       const SizedBox(height: 10),
-
-      Text(day, style: const TextStyle(fontWeight: FontWeight.w600)),
+      Text(day,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          )),
     ],
   );
 }

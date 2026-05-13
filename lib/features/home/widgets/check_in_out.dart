@@ -50,7 +50,7 @@ class CheckInOutCard extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.cardBg,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -71,7 +71,7 @@ class CheckInOutCard extends StatelessWidget {
                         const Text("Time", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                         const SizedBox(height: 2),
                         Text(DateFormat.jm().format(DateTime.now()),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
                       ],
                     ),
                     Column(
@@ -90,7 +90,7 @@ class CheckInOutCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(DateFormat('d MMM yyyy').format(DateTime.now()),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface)),
                       ],
                     ),
                   ],
@@ -130,7 +130,7 @@ class CheckInOutCard extends StatelessWidget {
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isCheckedIn ? AppColors.dangerRed : AppColors.successGreen,
-                      foregroundColor: AppColors.cardBg,
+                      foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
@@ -139,7 +139,7 @@ class CheckInOutCard extends StatelessWidget {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.cardBg),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
                         : Icon(isCheckedIn ? Icons.logout_rounded : Icons.login_rounded, size: 20),
                     label: Text(

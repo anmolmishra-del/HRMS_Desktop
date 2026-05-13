@@ -19,6 +19,7 @@ class WeekSummaryCard extends StatelessWidget {
         ],
       ),
       child: Column(
+
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
