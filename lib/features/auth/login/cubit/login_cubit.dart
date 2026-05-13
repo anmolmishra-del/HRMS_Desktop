@@ -113,6 +113,9 @@ class LoginCubit extends Cubit<LoginState> {
         'profile_pic',
         employee['profile_pic']?.toString() ?? '',
       );
+       await prefs.saveString(
+        'employee_code', employee['employee_code']?.toString() ?? '',
+      );
 
       // 4. Get User Groups
       debugPrint(
@@ -213,6 +216,7 @@ class LoginCubit extends Cubit<LoginState> {
     await prefs.remove('employee_data');
     await prefs.remove('user');
     await prefs.remove('employee_id');
+     await prefs.remove('employee_code');
     await prefs.remove('profile_pic');
     await prefs.remove('partner_id');
     await prefs.remove('isInternalUser');

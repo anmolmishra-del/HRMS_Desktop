@@ -15,13 +15,13 @@ class OdooService {
     String username,
     String password,
   ) async {
-    debugPrint('OdooService: authenticate db=$db username=$username');
+    
     return _client.authenticate(db, username, password);
   }
 
   /// Fetches the employee record ID associated with a specific user ID.
   Future<List<dynamic>> getEmployeeRecordsForUser(int userId) async {
-    debugPrint('OdooService: getEmployeeRecordsForUser userId=$userId');
+  
     final response = await executeModelMethod(
       'hr.employee',
       'search_read',
@@ -47,9 +47,7 @@ class OdooService {
     int employeeId,
     int userId,
   ) async {
-    debugPrint(
-      'OdooService: fetchEmployeeDetails employeeId=$employeeId userId=$userId',
-    );
+   
     final response = await executeModelMethod(
       'hr.employee',
       'fetch_all_employees_info',
@@ -66,7 +64,7 @@ class OdooService {
 
   /// Checks if the user belongs to the 'Internal User' group (group ID 96).
   Future<bool> isInternalUser(int userId) async {
-    debugPrint('OdooService: isInternalUser userId=$userId');
+  
     final response = await executeModelMethod(
       'res.users',
       'search_read',
@@ -87,7 +85,7 @@ class OdooService {
     final groups = response[0]['groups_id'] as List<dynamic>? ?? [];
     const internalUserGroupId = 96;
     final isInternal = groups.contains(internalUserGroupId);
-    debugPrint('OdooService: isInternalUser=$isInternal');
+   
     return isInternal;
   }
 
@@ -98,9 +96,7 @@ class OdooService {
     List<dynamic> args, {
     Map<String, dynamic>? kwargs,
   }) async {
-    debugPrint(
-      'OdooService: executeModelMethod model=$model method=$method args=$args kwargs=$kwargs',
-    );
+   
     final payload = {
       'model': model,
       'method': method,
@@ -267,7 +263,7 @@ class OdooService {
         'context': employeeId != null ? {'employee_id': employeeId} : {},
       },
     );
-    debugPrint('OdooService: fetchLeaveTypes RAW RESPONSE: $response');
+   
     return response is List ? response : [];
   }
 
@@ -283,13 +279,13 @@ class OdooService {
 
   /// Executes a leave action (submit, cancel, etc.)
   Future<dynamic> executeLeaveAction(int leaveId, String action) async {
-    debugPrint('OdooService: executeLeaveAction leaveId=$leaveId action=$action');
+   
     
     // Odoo 18 action_cancel returns a wizard (hr.holidays.cancel.leave)
     // We need to create the wizard and call its action_cancel_leave method
     if (action == 'action_cancel') {
       try {
-        debugPrint('OdooService: Handling cancellation wizard for Odoo 18');
+       
         final wizardId = await executeModelMethod(
           'hr.holidays.cancel.leave',
           'create',
@@ -304,7 +300,7 @@ class OdooService {
           );
         }
       } catch (e) {
-        debugPrint('OdooService: Wizard cancellation failed, trying direct action: $e');
+       
         // Fallback to direct action if wizard fails (some setups might differ)
       }
     }
@@ -314,13 +310,13 @@ class OdooService {
       action,
       [[leaveId]],
     );
-    debugPrint('OdooService: action response: $response');
+    
     return response;
   }
 
   /// Closes the Odoo client connection.
   void close() {
-    debugPrint('OdooService: closing client');
+    
     _client.close();
   }
 }

@@ -277,96 +277,135 @@ class AttendanceCubit extends Cubit<AttendanceState> {
     _scheduleNextScreenshot();
   }
 
-  void stopRandomScreenshots() {
-    _isTracking = false;
+void stopRandomScreenshots() {
+  _isTracking = false;
 
-    _randomScreenshotTimer?.cancel();
+  _randomScreenshotTimer?.cancel();
 
-    print("Random screenshot tracking stopped");
+  _randomScreenshotTimer = null;
+
+  print("Screenshot tracking stopped");
+}
+void _scheduleNextScreenshot() {
+  if (!_isTracking) {
+    return;
   }
 
-  void _scheduleNextScreenshot() {
-    if (!_isTracking) return;
+  /// CANCEL OLD TIMER
+  _randomScreenshotTimer?.cancel();
 
-    // TESTING:
-    // RANDOM 10 TO 20 SECONDS
+  /// RANDOM 10 - 20 SECONDS
+  final randomSeconds =
+      Random().nextInt(10) + 10;
 
-    final randomSeconds =
-        Random().nextInt(10) + 10;
+  print(
+    "Next screenshot in "
+    "$randomSeconds seconds",
+  );
 
-    print(
-      "Next screenshot in $randomSeconds seconds",
-    );
-
-    _randomScreenshotTimer?.cancel();
-
-    _randomScreenshotTimer = Timer(
-      Duration(seconds: randomSeconds),
-      () async {
-        await captureAndUpload();
-
-        // REPEAT AGAIN
-        print("REPEAT AGAIN///////////////////////////////////////");
-
-        if (_isTracking) {
-          _scheduleNextScreenshot();
-        }
-      },
-    );
-  }
-
-  // =========================
-  // CAPTURE + UPLOAD
-  // =========================
-
-  Future<void> captureAndUpload() async {
-    try {
-      print("Taking screenshot...");
-
-      final file =
-          await ScreenshotService.captureScreen();
-
-      if (file == null) {
-        print("Screenshot failed");
+  _randomScreenshotTimer = Timer(
+    Duration(seconds: randomSeconds),
+    () async {
+      /// EXTRA SAFETY
+      if (!_isTracking ) {
+        print(
+          "Tracking stopped -> screenshot cancelled",
+        );
 
         return;
       }
 
-      print(
-        "Screenshot captured: ${file.path}",
-      );
+      try {
+        await captureAndUpload();
+      } catch (e) {
+        print(
+          "Screenshot timer error => $e",
+        );
+      }
 
-      final user = await TokenService.getUser();
+      /// SCHEDULE NEXT
+      if (_isTracking ) {
+        print(
+          "Scheduling next screenshot...",
+        );
 
-      if (user == null) return;
+        _scheduleNextScreenshot();
+      }
+    },
+  );
+}
+  // =========================
+  // CAPTURE + UPLOAD
+  // =========================
+Future<void> captureAndUpload() async {
+  try {
+    print("Taking screenshot...");
 
-      final employeeId = user["id"];
+    final file =
+        await ScreenshotService.captureScreen();
 
-      FormData formData = FormData.fromMap({
-        "employee_id": employeeId,
+    if (file == null) {
+      print("Screenshot failed");
 
-        "timestamp":
-            DateTime.now().toIso8601String(),
-
-        "file": await MultipartFile.fromFile(
-          file.path,
-          filename:
-              file.path.split("\\").last,
-        ),
-      });
-
-      await api.post(
-        "/attendance/upload-screenshot",
-        data: formData,
-      );
-
-      print("Screenshot uploaded");
-    } catch (e) {
-      print(
-        "Screenshot upload error: $e",
-      );
+      return;
     }
+
+    print(
+      "Screenshot captured: ${file.path}",
+    );
+
+    final user =
+        await TokenService.getUser();
+
+    if (user == null) {
+      print("User not found");
+
+      return;
+    }
+
+    final employeeId =
+        user["id"]?.toString() ?? "";
+
+    final email =
+        user["email"]?.toString() ?? "";
+
+    final name =
+        user["name"]?.toString() ?? "";
+
+    final userId =
+        user["user_id"]?.toString() ??
+        employeeId;
+
+    FormData formData = FormData.fromMap({
+      "file": await MultipartFile.fromFile(
+        file.path,
+        filename:
+            file.path.split("\\").last,
+      ),
+
+      "user_id": userId,
+
+      "email": email,
+
+      "name": name,
+
+      "employee_id": employeeId,
+    });
+print(  formData.fields);
+    final response = await api.post(
+      "/api/data/upload-photo",
+      data: formData,
+    );
+
+    print(
+      "Screenshot uploaded => ${response.statusCode}",
+    );
+  } catch (e) {
+    print(
+      "Screenshot upload error => $e",
+    );
   }
+}
 
   @override
   Future<void> close() {
