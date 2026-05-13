@@ -174,13 +174,11 @@ List<AppUsageInfo> get _appUsageList {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: Colors.deepPurple,
               onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
             ),
-            dialogBackgroundColor: Colors.white,
+            dialogBackgroundColor: Theme.of(context).colorScheme.surface,
           ),
           child: child!,
         );
@@ -208,7 +206,7 @@ List<AppUsageInfo> get _appUsageList {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(

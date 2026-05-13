@@ -413,90 +413,168 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   // =========================================
   // TOGGLE ATTENDANCE
   // =========================================
+Future<void> toggleAttendance({bool isAutoCheckout = false}) async {
+  final currentlyCheckedIn = state.isCheckedIn;
 
-  Future<void> toggleAttendance({bool isAutoCheckout = false}) async {
-    final currentlyCheckedIn = state.isCheckedIn;
+  emit(state.copyWith(status: AttendanceStatus.loading));
 
-    emit(state.copyWith(status: AttendanceStatus.loading));
+  try {
+    await _odooService.mobileCheckInOut(
+      employeeId: _empId,
+      isCheckIn: currentlyCheckedIn,
+      longitude: _cachedPosition?.longitude ?? 0,
+      latitude: _cachedPosition?.latitude ?? 0,
+      ipAddress: _cachedIp,
+    );
 
-    try {
-      await _odooService.mobileCheckInOut(
-        employeeId: _empId,
-        isCheckIn: currentlyCheckedIn,
-        longitude: _cachedPosition?.longitude ?? 0,
-        latitude: _cachedPosition?.latitude ?? 0,
-        ipAddress: _cachedIp,
-      );
+    final updatedState = !currentlyCheckedIn;
 
-      final updatedState = !currentlyCheckedIn;
+    /// =========================================
+    /// CHECK-IN
+    /// =========================================
+    if (updatedState) {
+      _currentCheckInTime = DateTime.now();
 
-      if (updatedState) {
-        _currentCheckInTime = DateTime.now();
+      _listenActivityStream();
 
-        _listenActivityStream();
+      _startProductivityTimer();
 
-        _startProductivityTimer();
+      startRandomScreenshots();
 
-        startRandomScreenshots();
+      await _methodChannel.invokeMethod('startTracking');
 
-        await _methodChannel.invokeMethod('startTracking');
-        AppUsageService().startTracking();
-        print("TRACKING STARTED");
-      } else {
-        stopRandomScreenshots();
+      AppUsageService().startTracking();
 
-        _productivityTimer?.cancel();
-
-        await _activitySubscription?.cancel();
-
-        _activitySubscription = null;
-
-        await _methodChannel.invokeMethod('stopTracking');
-        AppUsageService().stopTracking();
-        print("TRACKING STOPPED");
-
-        _currentCheckInTime = null;
-
-        _dialogShown = false;
-
-        _trackingPaused = false;
-
-        _isIdle = false;
-
-        _totalKeys = 0;
-
-        _totalClicks = 0;
-
-        _totalMoves = 0;
-
-        _activeSeconds = 0;
-
-        _idleSeconds = 0;
-
-        _autoCheckoutTimer?.cancel();
-      }
-
-      emit(
-        state.copyWith(
-          status: AttendanceStatus.success,
-          isCheckedIn: updatedState,
-          successMessage: isAutoCheckout
-              ? "Auto checked out"
-              : updatedState
-              ? "Checked in successfully"
-              : "Checked out successfully",
-        ),
-      );
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: AttendanceStatus.failure,
-          errorMessage: e.toString(),
-        ),
-      );
+      print("TRACKING STARTED");
     }
+
+    /// =========================================
+    /// CHECK-OUT
+    /// =========================================
+   else {
+  stopRandomScreenshots();
+
+  _productivityTimer?.cancel();
+
+  await _activitySubscription?.cancel();
+
+  _activitySubscription = null;
+
+  await _methodChannel.invokeMethod('stopTracking');
+
+  AppUsageService().stopTracking();
+
+  print("TRACKING STOPPED");
+
+  /// =====================================
+  /// SAVE FINAL SESSION HOURS
+  /// =====================================
+
+  double finalSessionHours = 0;
+
+  if (_currentCheckInTime != null) {
+    finalSessionHours =
+        DateTime.now()
+            .difference(_currentCheckInTime!)
+            .inSeconds /
+        3600.0;
   }
 
+  /// IMPORTANT
+  /// ADD CURRENT SESSION TO EXISTING BASE
+  final finalTotalHours =
+      state.baseHours + finalSessionHours;
+
+  /// NOW CLEAR SESSION
+  _currentCheckInTime = null;
+
+  _dialogShown = false;
+
+  _trackingPaused = false;
+
+  _isIdle = false;
+
+  _autoCheckoutTimer?.cancel();
+
+  /// DO NOT RESET IMMEDIATELY
+  Future.delayed(
+    const Duration(minutes: 5),
+    () {
+      _totalKeys = 0;
+      _totalClicks = 0;
+      _totalMoves = 0;
+      _activeSeconds = 0;
+      _idleSeconds = 0;
+    },
+  );
+
+  emit(
+    state.copyWith(
+      status: AttendanceStatus.success,
+      isCheckedIn: false,
+
+      /// IMPORTANT FIX
+      baseHours: finalTotalHours,
+
+      /// IMPORTANT FIX
+      todayHours:
+          _formatHours(finalTotalHours),
+
+      productiveHours: productiveHours,
+
+      idleHours: _idleSeconds / 3600,
+
+      productivityPercent: _smoothProductivity,
+
+      totalKeys: _totalKeys,
+
+      totalClicks: _totalClicks,
+
+      totalMoves: _totalMoves,
+
+      successMessage: isAutoCheckout
+          ? "Auto checked out"
+          : "Checked out successfully",
+    ),
+  );
+
+  return;
+}
+
+    /// =========================================
+    /// NORMAL STATE UPDATE
+    /// =========================================
+
+    emit(
+      state.copyWith(
+        status: AttendanceStatus.success,
+        isCheckedIn: updatedState,
+        successMessage: updatedState
+            ? "Checked in successfully"
+            : "Checked out successfully",
+        productiveHours:
+            updatedState ? productiveHours : state.productiveHours,
+        idleHours:
+            updatedState ? _idleSeconds / 3600 : state.idleHours,
+        productivityPercent:
+            updatedState ? _smoothProductivity : state.productivityPercent,
+        totalKeys:
+            updatedState ? _totalKeys : state.totalKeys,
+        totalClicks:
+            updatedState ? _totalClicks : state.totalClicks,
+        totalMoves:
+            updatedState ? _totalMoves : state.totalMoves,
+      ),
+    );
+  } catch (e) {
+    emit(
+      state.copyWith(
+        status: AttendanceStatus.failure,
+        errorMessage: e.toString(),
+      ),
+    );
+  }
+}
   // =========================================
   // SCREENSHOT MONITORING
   // =========================================
@@ -611,23 +689,50 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   // =========================================
   // TICKER
   // =========================================
+void _startTicker() {
+  _ticker?.cancel();
 
-  void _startTicker() {
-    _ticker?.cancel();
+  _ticker = Timer.periodic(
+    const Duration(seconds: 1),
+    (_) {
+      /// WHEN CHECKED IN
+      if (state.isCheckedIn &&
+          _currentCheckInTime != null) {
 
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      final totalHours = state.baseHours + _calculateCurrentSessionHours();
+        final sessionHours =
+            _calculateCurrentSessionHours();
 
-      final formatted = _formatHours(totalHours);
+        final totalHours =
+            state.baseHours + sessionHours;
 
-      if (formatted == state.todayHours) {
-        return;
+        final formatted =
+            _formatHours(totalHours);
+
+        if (formatted != state.todayHours) {
+          emit(
+            state.copyWith(
+              todayHours: formatted,
+            ),
+          );
+        }
       }
 
-      emit(state.copyWith(todayHours: formatted));
-    });
-  }
+      /// WHEN CHECKED OUT
+      else {
+        final formatted =
+            _formatHours(state.baseHours);
 
+        if (formatted != state.todayHours) {
+          emit(
+            state.copyWith(
+              todayHours: formatted,
+            ),
+          );
+        }
+      }
+    },
+  );
+}
   double _calculateCurrentSessionHours() {
     if (_currentCheckInTime == null) {
       return 0.0;
@@ -653,42 +758,111 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   // =========================================
   // FETCH HOURS
   // =========================================
+Future<double> _fetchBaseHours() async {
+  DateTime now = DateTime.now();
 
-  Future<double> _fetchBaseHours() async {
-    DateTime now = DateTime.now();
+  DateTime start = DateTime(now.year, now.month, now.day);
 
-    DateTime start = DateTime(now.year, now.month, now.day);
+  DateTime end = start.add(const Duration(days: 1));
 
-    DateTime end = start.add(const Duration(days: 1));
+  final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
 
-    final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
+  final records = await _odooService.executeModelMethod(
+    'hr.attendance',
+    'search_read',
+    [],
+    kwargs: {
+      'domain': [
+        ['employee_id', '=', _empId],
+        ['check_in', '>=', formatter.format(start.toUtc())],
+        ['check_in', '<', formatter.format(end.toUtc())],
+      ],
+      'fields': [
+        'worked_hours',
+        'check_in',
+        'check_out',
+      ],
+      'order': 'check_in asc',
+    },
+  );
 
-    final records = await _odooService.executeModelMethod(
-      'hr.attendance',
-      'search_read',
-      [],
-      kwargs: {
-        'domain': [
-          ['employee_id', '=', _empId],
-          ['check_in', '>=', formatter.format(start.toUtc())],
-          ['check_in', '<', formatter.format(end.toUtc())],
-          ['check_out', '!=', false],
-        ],
-        'fields': ['worked_hours'],
-      },
-    );
+  double total = 0;
 
-    double total = 0;
+  if (records != null) {
+    for (final item in (records as List)) {
+      final workedHours =
+          (item['worked_hours'] ?? 0).toDouble();
 
-    if (records != null) {
-      for (var item in (records as List)) {
-        total += (item['worked_hours'] ?? 0.0).toDouble();
+      final rawCheckIn = item['check_in'];
+
+      final rawCheckOut = item['check_out'];
+
+      /// =====================================
+      /// SAFE PARSE CHECK-IN
+      /// =====================================
+
+      if (rawCheckIn == null || rawCheckIn == false) {
+        continue;
+      }
+
+      try {
+        String checkInStr = rawCheckIn.toString();
+
+        if (!checkInStr.endsWith('Z')) {
+          checkInStr =
+              '${checkInStr.replaceAll(' ', 'T')}Z';
+        }
+
+        final checkIn =
+            DateTime.parse(checkInStr).toLocal();
+
+        /// =====================================
+        /// ACTIVE SESSION
+        /// =====================================
+
+        if (rawCheckOut == null || rawCheckOut == false) {
+          final duration =
+              DateTime.now().difference(checkIn);
+
+          total += duration.inSeconds / 3600.0;
+        }
+
+        /// =====================================
+        /// COMPLETED SESSION
+        /// =====================================
+
+        else {
+          /// If Odoo worked_hours is updated use it
+          if (workedHours > 0) {
+            total += workedHours;
+          }
+
+          /// Otherwise calculate manually
+          else {
+            String checkOutStr = rawCheckOut.toString();
+
+            if (!checkOutStr.endsWith('Z')) {
+              checkOutStr =
+                  '${checkOutStr.replaceAll(' ', 'T')}Z';
+            }
+
+            final checkOut =
+                DateTime.parse(checkOutStr).toLocal();
+
+            final duration =
+                checkOut.difference(checkIn);
+
+            total += duration.inSeconds / 3600.0;
+          }
+        }
+      } catch (e) {
+        debugPrint("Hours parse error => $e");
       }
     }
-
-    return total;
   }
 
+  return total;
+}
   // =========================================
   // IP ADDRESS
   // =========================================

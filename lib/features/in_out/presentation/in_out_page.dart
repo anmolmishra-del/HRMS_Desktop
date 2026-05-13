@@ -1,5 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hrms_desktop/core/constants/app_colors.dart';
+import 'package:hrms_desktop/core/theme/theme_cubit.dart';
+import 'package:hrms_desktop/core/widget/glass_card.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,55 +15,65 @@ class InOutReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      // Initialize the cubit and fetch the initial report
       create: (context) => AttendanceReportCubit()..fetchReport(),
-      child: Scaffold(
-        backgroundColor: AppColors.lavenderBg,
-        body: Column(
-          children: [
-            const _ReportHeader(), // Sticky header with date range selector
-            Expanded(
-              child: BlocBuilder<AttendanceReportCubit, AttendanceReportState>(
-                builder: (context, state) {
-                  // Show loading spinner while fetching data
-                  if (state.status == ReportStatus.loading) {
-                    return const Center(child: CircularProgressIndicator(color: AppColors.primaryPurple));
-                  }
-                  
-                  // Show empty state if no records exist for the selected range
-                  if (state.records.isEmpty) {
-                    return _buildEmptyState();
-                  }
-                  
-                  // Display the list of attendance records
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: state.records.length,
-                    itemBuilder: (context, index) {
-                      final record = state.records[index];
-                      return _AttendanceCard(record: record);
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, themeState) {
+          return Scaffold(
+            // Transparent so the parent background image shows through
+            backgroundColor: Colors.transparent,
+            body: Column(
+              children: [
+                _ReportHeader(),
+                Expanded(
+                  child: BlocBuilder<AttendanceReportCubit, AttendanceReportState>(
+                    builder: (context, state) {
+                      if (state.status == ReportStatus.loading) {
+                        return const Center(child: CircularProgressIndicator(color: AppColors.primaryPurple));
+                      }
+                      if (state.records.isEmpty) {
+                        return _buildEmptyState(context, themeState);
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(20),
+                        itemCount: state.records.length,
+                        itemBuilder: (context, index) {
+                          final record = state.records[index];
+                          return _AttendanceCard(record: record);
+                        },
+                      );
                     },
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  /// Helper widget to show when no records are found.
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context, ThemeState themeState) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history_toggle_off, size: 80, color: AppColors.textSecondary.withOpacity(0.3)),
+          Icon(
+            Icons.history_toggle_off,
+            size: 80,
+            color: themeState.hasBackground
+                ? Colors.white.withOpacity(0.5)
+                : AppColors.textSecondary.withOpacity(0.3),
+          ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             "No records found",
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: themeState.hasBackground
+                  ? Colors.white.withOpacity(0.8)
+                  : AppColors.textSecondary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -72,7 +85,6 @@ class InOutReportPage extends StatelessWidget {
 class _ReportHeader extends StatelessWidget {
   const _ReportHeader();
 
-  /// Opens the date picker and updates the cubit state.
   Future<void> _selectDate(BuildContext context, bool isFrom, AttendanceReportState state) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -82,17 +94,17 @@ class _ReportHeader extends StatelessWidget {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: AppColors.primaryPurple,
-              onPrimary: AppColors.cardBg,
-              onSurface: AppColors.textPrimary,
+              onPrimary: Colors.white,
             ),
+            dialogBackgroundColor: Theme.of(context).colorScheme.surface,
           ),
           child: child!,
         );
       },
     );
-    if (picked != null) {
+    if (picked != null && context.mounted) {
       final cubit = context.read<AttendanceReportCubit>();
       if (isFrom) {
         cubit.updateDateRange(picked, state.toDate);
@@ -106,71 +118,98 @@ class _ReportHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AttendanceReportCubit, AttendanceReportState>(
       builder: (context, state) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.primaryPurple, AppColors.violet],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(32),
-              bottomRight: Radius.circular(32),
-            ),
-          ),
-          child: Column(
-            children: [
-              // Back button and Page Title
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_ios, color: AppColors.cardBg, size: 20),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      "Attendance Report",
-                      style: TextStyle(color: AppColors.cardBg, fontSize: 20, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
+        return BlocBuilder<ThemeCubit, ThemeState>(
+          builder: (context, themeState) {
+            final isGlass = themeState.hasBackground;
+
+            return ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
               ),
-              const SizedBox(height: 24),
-              // From and To date selection buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: _DateButton(
-                      label: "From",
-                      date: state.fromDate,
-                      onTap: () => _selectDate(context, true, state),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: isGlass ? 14 : 0,
+                  sigmaY: isGlass ? 14 : 0,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
+                  decoration: BoxDecoration(
+                    // Glass mode: semi-transparent dark/light tint
+                    // Normal mode: original purple gradient
+                    gradient: isGlass ? null : const LinearGradient(
+                      colors: [AppColors.primaryPurple, AppColors.violet],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    color: isGlass
+                        ? (themeState.themeMode == ThemeMode.dark
+                            ? Colors.black.withOpacity(0.45)
+                            : AppColors.primaryPurple.withOpacity(0.55))
+                        : null,
+                    border: isGlass
+                        ? const Border(
+                            bottom: BorderSide(color: Colors.white24, width: 1),
+                          )
+                        : null,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(32),
+                      bottomRight: Radius.circular(32),
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Icon(Icons.arrow_forward, color: AppColors.lightPurple, size: 16),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                          ),
+                          const Expanded(
+                            child: Text(
+                              "Attendance Report",
+                              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 48),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _DateButton(
+                              label: "From",
+                              date: state.fromDate,
+                              onTap: () => _selectDate(context, true, state),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Icon(Icons.arrow_forward, color: Colors.white54, size: 16),
+                          ),
+                          Expanded(
+                            child: _DateButton(
+                              label: "To",
+                              date: state.toDate,
+                              onTap: () => _selectDate(context, false, state),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: _DateButton(
-                      label: "To",
-                      date: state.toDate,
-                      onTap: () => _selectDate(context, false, state),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 }
 
-/// Custom button for the date picker.
 class _DateButton extends StatelessWidget {
   final String label;
   final DateTime date;
@@ -185,18 +224,18 @@ class _DateButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: AppColors.cardBg.withOpacity(0.15),
+          color: Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.cardBg.withOpacity(0.2)),
+          border: Border.all(color: Colors.white.withOpacity(0.25)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: AppColors.lightPurple, fontSize: 11)),
+            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
             const SizedBox(height: 4),
             Text(
               DateFormat('dd MMM, yyyy').format(date),
-              style: const TextStyle(color: AppColors.cardBg, fontSize: 13, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -205,36 +244,31 @@ class _DateButton extends StatelessWidget {
   }
 }
 
-/// Individual card representing one attendance record.
-/// Handles parsing and displaying worked hours, overtime, and location data.
+/// Individual card — uses GlassCard so it gets the blur when a background is active.
 class _AttendanceCard extends StatelessWidget {
   final dynamic record;
   const _AttendanceCard({required this.record});
 
   @override
   Widget build(BuildContext context) {
-    // Extract raw data from the Odoo response map
     final rawCheckIn = record['check_in'];
     final rawCheckOut = record['check_out'];
     final workedHours = (record['worked_hours'] ?? 0.0).toDouble();
     final overtimeHours = (record['overtime_hours'] ?? 0.0).toDouble();
     final validatedOT = (record['validated_overtime_hours'] ?? 0.0).toDouble();
-    
     final inLat = record['in_latitude'];
     final inLong = record['in_longitude'];
     final outLat = record['out_latitude'];
     final outLong = record['out_longitude'];
 
-    // Early exit if check-in is missing
     if (rawCheckIn == null || rawCheckIn == false) return const SizedBox.shrink();
 
-    // Parse Odoo UTC date strings (converting "yyyy-MM-dd HH:mm:ss" to ISO format first)
     String checkInStr = rawCheckIn.toString();
     if (!checkInStr.endsWith('Z')) {
       checkInStr = '${checkInStr.replaceAll(' ', 'T')}Z';
     }
     final DateTime checkIn = DateTime.parse(checkInStr).toLocal();
-    
+
     DateTime? checkOut;
     if (rawCheckOut != null && rawCheckOut is String && rawCheckOut.isNotEmpty) {
       String checkOutStr = rawCheckOut;
@@ -245,143 +279,143 @@ class _AttendanceCard extends StatelessWidget {
     }
 
     final bool isClosed = checkOut != null;
-
-    // If session is open, calculate worked hours based on current time
     double displayHours = workedHours;
     if (!isClosed) {
       displayHours = DateTime.now().difference(checkIn).inSeconds / 3600.0;
     }
 
-    // Check if location data was captured
-    final bool hasInLoc = inLat != null && inLat != 0.0;
+    final bool hasInLoc  = inLat  != null && inLat  != 0.0;
     final bool hasOutLoc = outLat != null && outLat != 0.0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Upper section: Status icon, Date, and Worked Hours
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: (isClosed ? AppColors.successGreen : AppColors.orange).withOpacity(0.1),
-                    shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: GlassCard(
+        padding: EdgeInsets.zero,
+        borderRadius: 20,
+        child: Column(
+          children: [
+            // Upper section
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: (isClosed ? AppColors.successGreen : AppColors.orange).withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isClosed ? Icons.check_circle_outline : Icons.timer_outlined,
+                      color: isClosed ? AppColors.successGreen : AppColors.orange,
+                      size: 24,
+                    ),
                   ),
-                  child: Icon(
-                    isClosed ? Icons.check_circle_outline : Icons.timer_outlined,
-                    color: isClosed ? AppColors.successGreen : AppColors.orange,
-                    size: 24,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DateFormat('EEEE, dd MMM').format(checkIn),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          isClosed ? "Completed" : "Still Working",
+                          style: TextStyle(
+                            color: isClosed ? AppColors.textSecondary : AppColors.orange,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        DateFormat('EEEE, dd MMM').format(checkIn),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isClosed ? "Completed" : "Still Working",
-                        style: TextStyle(
-                          color: isClosed ? AppColors.textSecondary : AppColors.orange,
-                          fontSize: 12,
+                        '${displayHours.toStringAsFixed(2)} hrs',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.primaryPurple,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${displayHours.toStringAsFixed(2)} hrs',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primaryPurple),
-                    ),
-                    if (overtimeHours > 0)
-                      Text(
-                        '+${overtimeHours.toStringAsFixed(2)} OT',
-                        style: const TextStyle(fontSize: 11, color: AppColors.successGreen, fontWeight: FontWeight.w600),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          // Lower section: Time Details (In, Out, Break) and Locations
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildTimeInfo("In", DateFormat('hh:mm:ss a').format(checkIn), AppColors.blue, 
-                      //subtitle: hasInLoc ? '${inLat.toStringAsFixed(2)}, ${inLong.toStringAsFixed(2)}' : null
-                      ),
-                    _buildTimeInfo(
-                      "Out", 
-                      isClosed ? DateFormat('hh:mm:ss a').format(checkOut) : '--:--', 
-                      isClosed ? AppColors.dangerRed : AppColors.textSecondary,
-                   //   subtitle: hasOutLoc ? '${outLat.toStringAsFixed(2)}, ${outLong.toStringAsFixed(2)}' : null
-                    ),
-                  ],
-                ),
-                // Show Validated Overtime row if applicable
-                if (validatedOT > 0) ...[
-                  const SizedBox(height: 12),
-                  const Divider(height: 1, indent: 20, endIndent: 20),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.verified_outlined, size: 14, color: AppColors.successGreen),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Validated Overtime: ${validatedOT.toStringAsFixed(2)} hrs',
-                        style: const TextStyle(fontSize: 12, color: AppColors.successGreen, fontWeight: FontWeight.bold),
-                      ),
+                      if (overtimeHours > 0)
+                        Text(
+                          '+${overtimeHours.toStringAsFixed(2)} OT',
+                          style: const TextStyle(fontSize: 11, color: AppColors.successGreen, fontWeight: FontWeight.w600),
+                        ),
                     ],
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+            const Divider(height: 1),
+            // Lower section
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildTimeInfo(
+                        context, "In",
+                        DateFormat('hh:mm:ss a').format(checkIn),
+                        AppColors.blue,
+                        subtitle: hasInLoc
+                            ? '${inLat.toStringAsFixed(2)}, ${inLong.toStringAsFixed(2)}'
+                            : null,
+                      ),
+                      _buildTimeInfo(
+                        context, "Out",
+                        isClosed ? DateFormat('hh:mm:ss a').format(checkOut) : '--:--',
+                        isClosed ? AppColors.dangerRed : AppColors.textSecondary,
+                        subtitle: hasOutLoc
+                            ? '${outLat.toStringAsFixed(2)}, ${outLong.toStringAsFixed(2)}'
+                            : null,
+                      ),
+                    ],
+                  ),
+                  if (validatedOT > 0) ...[
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, indent: 20, endIndent: 20),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.verified_outlined, size: 14, color: AppColors.successGreen),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Validated Overtime: ${validatedOT.toStringAsFixed(2)} hrs',
+                          style: const TextStyle(fontSize: 12, color: AppColors.successGreen, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /// Helper to build a column for time info (Label, Time, and optional Subtitle like GPS).
-  Widget _buildTimeInfo(String label, String time, Color color, {String? subtitle}) {
+  Widget _buildTimeInfo(BuildContext context, String label, String time, Color color, {String? subtitle}) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
           const SizedBox(height: 4),
-          Text(
-            time,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
-          ),
+          Text(time, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
             Text(

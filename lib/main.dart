@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:hrms_desktop/core/constants/app_images.dart';
 import 'package:hrms_desktop/core/theme/app_theme.dart';
 import 'package:hrms_desktop/core/localization/app_localization.dart';
+import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/routes.dart';
 
@@ -93,6 +94,9 @@ class _MyAppState extends State<MyApp> with WindowListener {
           builder: (context, child) {
             return MultiBlocProvider(
               providers: [
+                BlocProvider<ThemeCubit>(
+    create: (_) => ThemeCubit(),
+  ),
                 BlocProvider(
                   create: (_) => AttendanceCubit(navigatorKey)..loadInitialStatus(),
                 ),
@@ -101,23 +105,27 @@ class _MyAppState extends State<MyApp> with WindowListener {
                 ),
               ],
 
-              child: MaterialApp(
-                navigatorKey: navigatorKey,
+              child: BlocBuilder<ThemeCubit, ThemeState>(
+                builder: (context, themeState) {
+                  return MaterialApp(
+                    navigatorKey: navigatorKey,
 
-                debugShowCheckedModeBanner: false,
+                    debugShowCheckedModeBanner: false,
 
-                theme: AppTheme.lightTheme,
-                darkTheme: AppTheme.darkTheme,
-                themeMode: AppTheme().isDarkMode ? ThemeMode.dark : ThemeMode.light,
+                    theme: AppTheme.lightTheme,
+                    darkTheme: AppTheme.darkTheme,
+                    themeMode: themeState.themeMode,
 
-                // Localization setup
-                locale: AppLocalization().currentLocale,
-                supportedLocales: AppLocalization.supportedLocales,
-                localizationsDelegates: AppLocalization.localizationsDelegates,
+                    // Localization setup
+                    locale: AppLocalization().currentLocale,
+                    supportedLocales: AppLocalization.supportedLocales,
+                    localizationsDelegates: AppLocalization.localizationsDelegates,
 
-                routes: Routes.getAll(),
+                    routes: Routes.getAll(),
 
-                home: const SplashScreen(),
+                    home: const SplashScreen(),
+                  );
+                },
               ),
             );
           },
@@ -164,7 +172,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: Center(
         child: SizedBox(

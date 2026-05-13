@@ -226,37 +226,37 @@ class AppTheme extends ChangeNotifier {
       
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
-          color: Color(0xFF000000),
+          color: Color(0xFFE6E0E9),
           fontSize: 32,
           fontWeight: FontWeight.bold,
         ),
         headlineMedium: TextStyle(
-          color: Color(0xFF000000),
+          color: Color(0xFFE6E0E9),
           fontSize: 28,
           fontWeight: FontWeight.bold,
         ),
         titleLarge: TextStyle(
-          color: Color(0xFF000000),
+          color: Color(0xFFE6E0E9),
           fontSize: 22,
           fontWeight: FontWeight.w600,
         ),
         titleMedium: TextStyle(
-          color: Color(0xFF000000),
+          color: Color(0xFFE6E0E9),
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
         bodyLarge: TextStyle(
-          color: Color(0xFF000000),
+          color: Color(0xFFE6E0E9),
           fontSize: 16,
           fontWeight: FontWeight.normal,
         ),
         bodyMedium: TextStyle(
-          color: Color(0xFF000000),
+          color: Color(0xFFCAC4D0),
           fontSize: 14,
           fontWeight: FontWeight.normal,
         ),
         labelLarge: TextStyle(
-          color: Color(0xFF000000),
+          color: Color(0xFFE6E0E9),
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
