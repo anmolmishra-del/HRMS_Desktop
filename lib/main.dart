@@ -10,6 +10,7 @@ import 'package:hrms_desktop/core/theme/app_theme.dart';
 import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
+import 'package:hrms_desktop/features/leave/cubit/leave_cubit.dart';
 import 'package:hrms_desktop/routes.dart';
 
 void main() async {
@@ -102,6 +103,9 @@ class _MyAppState extends State<MyApp> with WindowListener {
                 ),
                  BlocProvider<LoginCubit>(
                   create: (_) => LoginCubit(),
+                ),
+                BlocProvider(
+                  create: (_) => LeaveCubit(),
                 ),
               ],
 

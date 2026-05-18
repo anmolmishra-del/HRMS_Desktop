@@ -1,0 +1,105 @@
+import 'package:flutter/material.dart';
+import 'package:hrms_desktop/core/services/app_usage_service.dart';
+
+class AppUsageCard extends StatelessWidget {
+  final AppUsageInfo appData;
+
+  const AppUsageCard({
+    super.key,
+    required this.appData,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors =
+        Theme.of(context).colorScheme;
+
+    final hours =
+        appData.timeSpent.inHours;
+
+    final minutes =
+        appData.timeSpent
+            .inMinutes
+            .remainder(60);
+
+    return Container(
+      padding:
+          const EdgeInsets.all(16),
+
+      decoration: BoxDecoration(
+        color: colors.surface,
+
+        borderRadius:
+            BorderRadius.circular(16),
+
+        border: Border.all(
+          color: appData.color
+              .withOpacity(0.2),
+        ),
+      ),
+
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.all(10),
+
+                decoration: BoxDecoration(
+                  color: appData.color
+                      .withOpacity(0.12),
+
+                  borderRadius:
+                      BorderRadius.circular(10),
+                ),
+
+                child: Icon(
+                  appData.icon,
+
+                  color: appData.color,
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Text(
+                  appData.appName,
+
+                  maxLines: 1,
+
+                  overflow:
+                      TextOverflow.ellipsis,
+
+                  style: const TextStyle(
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const Spacer(),
+
+          Text(
+            "${hours}h ${minutes}m",
+
+            style: TextStyle(
+              fontSize: 28,
+
+              fontWeight:
+                  FontWeight.bold,
+
+              color: colors.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

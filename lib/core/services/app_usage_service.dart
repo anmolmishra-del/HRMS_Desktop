@@ -5,6 +5,8 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/material.dart';
 import 'package:win32/win32.dart';
 
+import 'productivity_engine_service.dart';
+
 class AppUsageService {
 
   static final AppUsageService _instance =
@@ -14,125 +16,232 @@ class AppUsageService {
 
   AppUsageService._internal();
 
+  /// =====================================
+  /// CATEGORY DATA
+  /// =====================================
+
   final Map<String, Duration>
-      _appUsageData = {};
+      _categoryUsageData = {
+
+    'Browser': Duration.zero,
+
+    'Entertainment': Duration.zero,
+
+    'Development': Duration.zero,
+
+    'Communication': Duration.zero,
+
+    'Productivity': Duration.zero,
+  };
 
   Timer? _trackingTimer;
 
-  String _currentApp = "";
+  String _currentCategory = "";
 
   DateTime? _lastSwitchTime;
 
-  // =====================================
-  // APP CATEGORY MAP
-  // =====================================
+  /// =====================================
+  /// APP CATEGORY MAP
+  /// =====================================
 
   static const Map<String, String>
       _appCategories = {
 
+    /// BROWSER
     'chrome': 'Browser',
     'firefox': 'Browser',
     'edge': 'Browser',
+    'opera': 'Browser',
+    'brave': 'Browser',
 
+    /// ENTERTAINMENT
     'youtube': 'Entertainment',
     'netflix': 'Entertainment',
     'spotify': 'Entertainment',
+    'hotstar': 'Entertainment',
 
+    /// DEVELOPMENT
     'code': 'Development',
     'windsurf': 'Development',
-    'visual studio':
-        'Development',
+    'visual studio': 'Development',
+    'android studio': 'Development',
+    'cursor': 'Development',
 
+    /// COMMUNICATION
     'slack': 'Communication',
     'teams': 'Communication',
     'zoom': 'Communication',
+    'discord': 'Communication',
+    'telegram': 'Communication',
 
+    /// PRODUCTIVITY
     'excel': 'Productivity',
     'word': 'Productivity',
+    'powerpoint': 'Productivity',
+    'outlook': 'Productivity',
+    'notion': 'Productivity',
   };
 
-  // =====================================
-  // START TRACKING
-  // =====================================
+  /// =====================================
+  /// START TRACKING
+  /// =====================================
 
   void startTracking() {
 
-    if (_trackingTimer
-            ?.isActive ??
-        false) {
+    if (_trackingTimer?.isActive ?? false) {
+
+      print(
+        "Tracking already running",
+      );
+
       return;
     }
+
+    print(
+      "APP USAGE TRACKING STARTED",
+    );
 
     _lastSwitchTime =
         DateTime.now();
 
-    _trackingTimer =
-        Timer.periodic(
+    _trackingTimer = Timer.periodic(
 
-      const Duration(
-          seconds: 1),
+      const Duration(seconds: 1),
 
       (_) {
 
         final activeWindow =
             getActiveWindowTitle();
 
-        if (activeWindow
-            .isEmpty) {
+        if (activeWindow.isEmpty) {
           return;
         }
 
-        final now =
-            DateTime.now();
+        final category =
+            getAppCategory(
+          activeWindow,
+        );
 
-        if (_currentApp
-                .isNotEmpty &&
-            _lastSwitchTime !=
-                null) {
+        /// IGNORE UNKNOWN
+        if (category == 'Other') {
+          return;
+        }
 
-          final duration =
-              now.difference(
-            _lastSwitchTime!,
+        /// =====================================
+        /// CHECK IDLE
+        /// =====================================
+
+        final engine =
+            ProductivityEngineService();
+
+        if (engine.isIdle) {
+
+          print(
+            "USER IDLE - PAUSE TRACKING",
           );
 
-          _appUsageData.update(
+          return;
+        }
 
-            _currentApp,
+        final now = DateTime.now();
+
+        /// =====================================
+        /// FIRST CATEGORY
+        /// =====================================
+
+        if (_currentCategory
+            .isEmpty) {
+
+          _currentCategory =
+              category;
+
+          _lastSwitchTime =
+              now;
+
+          print(
+            "FIRST CATEGORY => "
+            "$category",
+          );
+
+          return;
+        }
+
+        /// =====================================
+        /// SAME CATEGORY
+        /// =====================================
+
+        if (_currentCategory ==
+            category) {
+
+          _categoryUsageData.update(
+
+            category,
 
             (value) =>
                 value +
-                duration,
-
-            ifAbsent: () =>
-                duration,
+                const Duration(
+                  seconds: 1,
+                ),
           );
         }
 
-        _currentApp =
-            activeWindow;
+        /// =====================================
+        /// CATEGORY SWITCH
+        /// =====================================
 
-        _lastSwitchTime =
-            now;
+        else {
+
+          /// SAVE LAST SECOND
+          _categoryUsageData.update(
+
+            _currentCategory,
+
+            (value) =>
+                value +
+                const Duration(
+                  seconds: 1,
+                ),
+          );
+
+          print(
+            "CATEGORY SWITCH => "
+            "$_currentCategory -> "
+            "$category",
+          );
+
+          _currentCategory =
+              category;
+
+          _lastSwitchTime =
+              now;
+        }
 
         print(
-          "APP USAGE => $_appUsageData",
+          "CATEGORY USAGE => "
+          "$_categoryUsageData",
         );
       },
     );
   }
 
-  // =====================================
-  // STOP TRACKING
-  // =====================================
+  /// =====================================
+  /// STOP TRACKING
+  /// =====================================
 
   void stopTracking() {
 
+    print(
+      "STOP APP TRACKING",
+    );
+
     _trackingTimer?.cancel();
+
+    _trackingTimer = null;
   }
 
-  // =====================================
-  // ACTIVE WINDOW
-  // =====================================
+  /// =====================================
+  /// ACTIVE WINDOW
+  /// =====================================
 
   String getActiveWindowTitle() {
 
@@ -144,9 +253,7 @@ class AppUsageService {
         GetForegroundWindow();
 
     final length =
-        GetWindowTextLength(
-      hwnd,
-    );
+        GetWindowTextLength(hwnd);
 
     final buffer =
         wsalloc(length + 1);
@@ -167,21 +274,42 @@ class AppUsageService {
         .trim();
   }
 
-  // =====================================
-  // GET USAGE DATA
-  // =====================================
+  /// =====================================
+  /// GET CATEGORY
+  /// =====================================
+
+  String getAppCategory(
+      String appName) {
+
+    for (final entry
+        in _appCategories.entries) {
+
+      if (appName.contains(
+        entry.key,
+      )) {
+
+        return entry.value;
+      }
+    }
+
+    return 'Other';
+  }
+
+  /// =====================================
+  /// GET USAGE DATA
+  /// =====================================
 
   Map<String, Duration>
       getUsageData() {
 
     return Map.from(
-      _appUsageData,
+      _categoryUsageData,
     );
   }
 
-  // =====================================
-  // GET TOP APPS
-  // =====================================
+  /// =====================================
+  /// GET TOP APPS
+  /// =====================================
 
   List<AppUsageInfo>
       getTopApps({
@@ -189,7 +317,7 @@ class AppUsageService {
   }) {
 
     final sortedApps =
-        _appUsageData.entries
+        _categoryUsageData.entries
             .toList()
 
           ..sort(
@@ -203,24 +331,24 @@ class AppUsageService {
         .take(limit)
         .map((entry) {
 
-      final appName =
+      final category =
           entry.key;
 
       final timeSpent =
           entry.value;
 
-      final category =
-          getAppCategory(
-        appName,
-      );
-
       return AppUsageInfo(
-        appName: appName,
+
+        appName: category,
+
         timeSpent: timeSpent,
+
         category: category,
-        icon: getAppIcon(
-          appName,
+
+        icon: getCategoryIcon(
+          category,
         ),
+
         color: getAppColor(
           category,
         ),
@@ -229,105 +357,71 @@ class AppUsageService {
     }).toList();
   }
 
-  // =====================================
-  // CATEGORY
-  // =====================================
+  /// =====================================
+  /// FORMAT DURATION
+  /// =====================================
+String formatDuration(
+    Duration duration) {
 
-  String getAppCategory(
-      String appName) {
+  final hours =
+      duration.inHours;
 
-    return _appCategories
-            .entries
+  final minutes =
+      duration.inMinutes % 60;
 
-            .where(
-              (entry) =>
-                  appName.contains(
-                entry.key,
-              ),
-            )
+  final seconds =
+      duration.inSeconds % 60;
 
-            .map(
-              (entry) =>
-                  entry.value,
-            )
+  /// HOURS
+  if (hours > 0) {
 
-            .firstOrNull ??
-
-        'Other';
+    return
+        "${hours}h ${minutes}m";
   }
 
-  // =====================================
-  // ICON
-  // =====================================
+  /// MINUTES
+  if (minutes > 0) {
 
-  IconData getAppIcon(
-      String appName) {
-
-    if (appName.contains(
-          'chrome',
-        ) ||
-        appName.contains(
-          'firefox',
-        ) ||
-        appName.contains(
-          'edge',
-        )) {
-
-      return Icons.language;
-    }
-
-    else if (appName.contains(
-          'youtube',
-        ) ||
-        appName.contains(
-          'netflix',
-        )) {
-
-      return Icons.play_circle;
-    }
-
-    else if (appName.contains(
-          'code',
-        ) ||
-        appName.contains(
-          'windsurf',
-        ) ||
-        appName.contains(
-          'visual studio',
-        )) {
-
-      return Icons.code;
-    }
-
-    else if (appName.contains(
-          'slack',
-        ) ||
-        appName.contains(
-          'teams',
-        ) ||
-        appName.contains(
-          'zoom',
-        )) {
-
-      return Icons.chat;
-    }
-
-    else if (appName.contains(
-          'excel',
-        ) ||
-        appName.contains(
-          'word',
-        )) {
-
-      return Icons.table_chart;
-    }
-
-    return Icons.apps;
+    return
+        "${minutes}m";
   }
 
-  // =====================================
-  // COLOR
-  // =====================================
+  /// SECONDS
+  return
+      "${seconds}s";
+}
+  /// =====================================
+  /// ICONS
+  /// =====================================
+
+  IconData getCategoryIcon(
+      String category) {
+
+    switch (category) {
+
+      case 'Browser':
+        return Icons.language;
+
+      case 'Entertainment':
+        return Icons.ondemand_video;
+
+      case 'Development':
+        return Icons.code;
+
+      case 'Communication':
+        return Icons.chat;
+
+      case 'Productivity':
+        return Icons.work;
+
+      default:
+        return Icons.apps;
+    }
+  }
+
+  /// =====================================
+  /// COLORS
+  /// =====================================
 
   Color getAppColor(
       String category) {
@@ -354,16 +448,29 @@ class AppUsageService {
     }
   }
 
-  // =====================================
-  // CLEAR
-  // =====================================
+  /// =====================================
+  /// CLEAR
+  /// =====================================
 
   void clearData() {
 
-    _appUsageData.clear();
+    _categoryUsageData.updateAll(
 
-    _trackingTimer
-        ?.cancel();
+      (key, value) =>
+          Duration.zero,
+    );
+
+    _trackingTimer?.cancel();
+
+    _trackingTimer = null;
+
+    _currentCategory = "";
+
+    _lastSwitchTime = null;
+
+    print(
+      "APP USAGE CLEARED",
+    );
   }
 }
 

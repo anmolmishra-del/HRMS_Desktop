@@ -12,6 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:hrms_desktop/core/services/app_usage_service.dart';
+import 'package:hrms_desktop/core/services/productivity_engine_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
@@ -51,6 +52,10 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   Timer? _randomScreenshotTimer;
 
   Timer? _productivityTimer;
+
+  int _screenshotsTakenToday = 0;
+
+  DateTime? _lastScreenshotDate;
 
   Timer? _autoCheckoutTimer;
 
@@ -127,7 +132,36 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
     _cachedPosition = await _getCurrentPosition();
 
+    _totalKeys = await prefs.getInt('total_keys') ?? 0;
+    _totalClicks = await prefs.getInt('total_clicks') ?? 0;
+    _totalMoves = await prefs.getInt('total_moves') ?? 0;
+    _activeSeconds = (await prefs.getDouble('active_seconds') ?? 0);
+    _idleSeconds = (await prefs.getDouble('idle_seconds') ?? 0);
+    _screenshotsTakenToday = await prefs.getInt('screenshots_today') ?? 0;
+    final lastDateStr = await prefs.getString('last_screenshot_date');
+    if (lastDateStr != null && lastDateStr.isNotEmpty) {
+      _lastScreenshotDate = DateTime.parse(lastDateStr);
+    }
+
+    print(
+      "LOADED TRACKING DATA => Keys: $_totalKeys, Clicks: $_totalClicks, Moves: $_totalMoves",
+    );
+
     _isInitialized = true;
+  }
+
+  Future<void> _saveTrackingData() async {
+    final prefs = SharedPref();
+    await prefs.saveInt('total_keys', _totalKeys);
+    await prefs.saveInt('total_clicks', _totalClicks);
+    await prefs.saveInt('total_moves', _totalMoves);
+    await prefs.saveDouble('active_seconds', _activeSeconds);
+    await prefs.saveDouble('idle_seconds', _idleSeconds);
+    await prefs.saveInt('screenshots_today', _screenshotsTakenToday);
+    await prefs.saveString(
+      'last_screenshot_date',
+      _lastScreenshotDate?.toIso8601String() ?? '',
+    );
   }
 
   @override
@@ -184,10 +218,29 @@ class AttendanceCubit extends Cubit<AttendanceState> {
         }
 
         _currentCheckInTime = DateTime.parse(lastCheckIn).toLocal();
+
+        /// =====================================
+        /// AUTO RESUME TRACKING AFTER RESTART
+        /// =====================================
+
+        print("USER ALREADY CHECKED IN");
+
+        _listenActivityStream();
+
+        //_startProductivityTimer();
+        ProductivityEngineService().startTracking();
+
+        startRandomScreenshots();
+
+        await _methodChannel.invokeMethod('startTracking');
+
+        AppUsageService().startTracking();
+
+        print("TRACKING AUTO RESUMED");
       }
 
       final baseHours = await _fetchBaseHours();
-
+      print(baseHours);
       emit(
         state.copyWith(
           status: AttendanceStatus.success,
@@ -214,7 +267,6 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   // =========================================
   // ACTIVITY STREAM
   // =========================================
-
   void _listenActivityStream() {
     _activitySubscription?.cancel();
 
@@ -230,6 +282,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
         if (event is! Map) return;
 
+        final engine = ProductivityEngineService();
+
         final int keys = event['keys'] ?? 0;
 
         final int clicks = event['clicks'] ?? 0;
@@ -238,7 +292,16 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
         final int idle = event['idle'] ?? 0;
 
+        print(
+          "IDLE TIME => "
+          "$idle seconds",
+        );
+
         final bool currentlyIdle = idle >= 60;
+
+        /// =====================================
+        /// TOTAL COUNTERS
+        /// =====================================
 
         _totalKeys += keys;
 
@@ -246,31 +309,54 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
         _totalMoves += moves;
 
-        _minuteKeys += keys;
+        /// =====================================
+        /// PRODUCTIVITY ENGINE
+        /// =====================================
 
-        _minuteClicks += clicks;
-
-        _minuteMoves += moves;
-
-        print("TOTAL KEYS => $_totalKeys");
-
-        print("TOTAL CLICKS => $_totalClicks");
-
-        print("TOTAL MOVES => $_totalMoves");
-
-        if (currentlyIdle) {
-          _idleSeconds++;
-
-          _minuteIdleSeconds++;
-        } else {
-          _activeSeconds++;
+        for (int i = 0; i < keys; i++) {
+          engine.onKeyboardActivity();
         }
 
-        // =========================================
-        // IDLE DETECTION
-        // =========================================
+        for (int i = 0; i < clicks; i++) {
+          engine.onMouseClick();
+        }
+
+        for (int i = 0; i < moves; i++) {
+          engine.onMouseMove();
+        }
+
+        print(
+          "ENGINE KEYS => "
+          "${engine.totalKeys}",
+        );
+
+        print(
+          "ENGINE CLICKS => "
+          "${engine.totalClicks}",
+        );
+
+        print(
+          "ENGINE MOVES => "
+          "${engine.totalMoves}",
+        );
+
+        print(
+          "FOCUS => "
+          "${engine.focusTime}",
+        );
+
+        print(
+          "IDLE => "
+          "${engine.idleTime}",
+        );
+
+        /// =====================================
+        /// IDLE WARNING
+        /// =====================================
 
         if (currentlyIdle && !_isIdle) {
+          print("IDLE DETECTED");
+
           _isIdle = true;
 
           _dialogShown = true;
@@ -279,10 +365,12 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
           _showIdleWarning();
         }
-        // =========================================
-        // USER ACTIVE AGAIN
-        // =========================================
+        /// =====================================
+        /// ACTIVE AGAIN
+        /// =====================================
         else if (!currentlyIdle && _isIdle) {
+          print("USER ACTIVE AGAIN");
+
           _isIdle = false;
 
           _trackingPaused = false;
@@ -298,81 +386,95 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           }
         }
 
+        /// =====================================
+        /// UPDATE UI
+        /// =====================================
+
         emit(
           state.copyWith(
-            totalKeys: _totalKeys,
-            totalClicks: _totalClicks,
-            totalMoves: _totalMoves,
-            idleHours: _idleSeconds / 3600,
-            productiveHours: productiveHours,
+            totalKeys: engine.totalKeys,
+
+            totalClicks: engine.totalClicks,
+
+            totalMoves: engine.totalMoves,
+
+            productiveHours: engine.activeSeconds / 3600,
+
+            idleHours: engine.idleSeconds / 3600,
+
+            productivityPercent: engine.productivity,
           ),
         );
       } catch (e) {
         debugPrint("Tracker crash => $e");
       }
     });
-  }
-
-  // =========================================
+  } // =========================================
   // PRODUCTIVITY TIMER
   // =========================================
 
-  void _startProductivityTimer() {
-    _productivityTimer?.cancel();
+  // void _startProductivityTimer() {
+  //   _productivityTimer?.cancel();
 
-    _productivityTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      double activityScore = 0;
+  //   _productivityTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+  //     double activityScore = 0;
 
-      activityScore += (_minuteKeys * 0.02);
+  //     activityScore += (_minuteKeys * 0.02);
 
-      activityScore += (_minuteClicks * 0.03);
+  //     activityScore += (_minuteClicks * 0.03);
 
-      activityScore += (_minuteMoves * 0.001);
+  //     activityScore += (_minuteMoves * 0.001);
 
-      activityScore -= (_minuteIdleSeconds * 0.5);
+  //     activityScore -= (_minuteIdleSeconds * 0.5);
 
-      activityScore = activityScore.clamp(0, 100);
+  //     activityScore = activityScore.clamp(0, 100);
 
-      _smoothProductivity =
-          (_smoothProductivity * 0.85) + (activityScore * 0.15);
+  //     _smoothProductivity =
+  //         (_smoothProductivity * 0.85) + (activityScore * 0.15);
 
-      _smoothProductivity = _smoothProductivity.clamp(0, 100);
+  //     _smoothProductivity = _smoothProductivity.clamp(0, 100);
 
-      emit(
-        state.copyWith(
-          productiveHours: productiveHours,
-          idleHours: _idleSeconds / 3600,
-          productivityPercent: _smoothProductivity,
-          totalKeys: _totalKeys,
-          totalClicks: _totalClicks,
-          totalMoves: _totalMoves,
-        ),
-      );
+  //     emit(
+  //       state.copyWith(
+  //         productiveHours: productiveHours,
+  //         idleHours: _idleSeconds / 3600,
+  //         productivityPercent: _smoothProductivity,
+  //         totalKeys: _totalKeys,
+  //         totalClicks: _totalClicks,
+  //         totalMoves: _totalMoves,
+  //       ),
+  //     );
 
-      _minuteKeys = 0;
+  //     _saveTrackingData();
 
-      _minuteClicks = 0;
+  //     _minuteKeys = 0;
 
-      _minuteMoves = 0;
+  //     _minuteClicks = 0;
 
-      _minuteIdleSeconds = 0;
-    });
-  }
+  //     _minuteMoves = 0;
+
+  //     _minuteIdleSeconds = 0;
+  //   });
+  // }
 
   // =========================================
   // IDLE WARNING
   // =========================================
 
   void _showIdleWarning() {
+    print("SHOWING IDLE WARNING DIALOG");
     final context = navigatorKey.currentState?.overlay?.context;
 
     if (context == null) {
+      print("CONTEXT IS NULL - Cannot show dialog");
       return;
     }
 
     _autoCheckoutTimer?.cancel();
 
+    print("SETTING AUTO CHECKOUT TIMER FOR 1 MINUTE");
     _autoCheckoutTimer = Timer(const Duration(minutes: 1), () {
+      print("AUTO CHECKOUT TIMER FIRED");
       _performAutoCheckout();
     });
 
@@ -388,6 +490,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           actions: [
             TextButton(
               onPressed: () {
+                print("USER CLICKED CONTINUE WORKING");
                 Navigator.pop(context);
 
                 _trackingPaused = false;
@@ -408,6 +511,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   }
 
   Future<void> _performAutoCheckout() async {
+    print("PERFORMING AUTO CHECKOUT");
     await toggleAttendance(isAutoCheckout: true);
   }
 
@@ -438,9 +542,10 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
         _listenActivityStream();
 
-        _startProductivityTimer();
+        //  _startProductivityTimer();
 
         startRandomScreenshots();
+        ProductivityEngineService().startTracking();
 
         await _methodChannel.invokeMethod('startTracking');
 
@@ -452,8 +557,11 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       /// CHECK-OUT
       /// =========================================
       else {
-        stopRandomScreenshots();
+        _isTracking = false;
 
+        stopRandomScreenshots();
+        ProductivityEngineService().stopTracking();
+        ProductivityEngineService().reset();
         _productivityTimer?.cancel();
 
         await _activitySubscription?.cancel();
@@ -465,6 +573,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
         AppUsageService().stopTracking();
 
         print("TRACKING STOPPED");
+
+        _saveTrackingData();
 
         /// =====================================
         /// SAVE FINAL SESSION HOURS
@@ -570,18 +680,34 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
   void startRandomScreenshots() {
     if (_isTracking) {
+      print("Tracking already running");
+
+      return;
+    }
+
+    if (!state.isCheckedIn && _currentCheckInTime == null) {
+      print("User not checked in -> tracking blocked");
+
       return;
     }
 
     _isTracking = true;
 
+    _resetDailyScreenshotCount();
+
+    print("SCREENSHOT TRACKING STARTED");
+
     _scheduleNextScreenshot();
   }
 
   void stopRandomScreenshots() {
+    print("STOPPING SCREENSHOT TRACKING");
+
     _isTracking = false;
 
     _randomScreenshotTimer?.cancel();
+
+    _randomScreenshotTimer = null;
   }
 
   void _scheduleNextScreenshot() {
@@ -589,12 +715,51 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       return;
     }
 
-    final randomSeconds = Random().nextInt(10) + 10;
+    /// CANCEL OLD TIMER
+    _randomScreenshotTimer?.cancel();
+
+    /// DAILY LIMIT
+    if (_screenshotsTakenToday >= 300) {
+      print("Daily screenshot limit reached");
+
+      _isTracking = false;
+
+      return;
+    }
+
+    /// RANDOM 15-30 SECONDS
+    final randomSeconds = Random().nextInt(15) + 15;
+
+    print(
+      "Next screenshot in "
+      "$randomSeconds seconds",
+    );
 
     _randomScreenshotTimer = Timer(Duration(seconds: randomSeconds), () async {
-      await captureAndUpload();
+      /// EXTRA SAFETY
+      if (!_isTracking || !state.isCheckedIn || _currentCheckInTime == null) {
+        print("Tracking stopped -> screenshot cancelled");
 
-      if (_isTracking) {
+        return;
+      }
+
+      try {
+        await captureAndUpload();
+
+        _screenshotsTakenToday++;
+
+        await _saveTrackingData();
+
+        print(
+          "Screenshots today => "
+          "$_screenshotsTakenToday",
+        );
+      } catch (e) {
+        print("Screenshot timer error => $e");
+      }
+
+      /// REPEAT AGAIN
+      if (_isTracking && state.isCheckedIn) {
         _scheduleNextScreenshot();
       }
     });
@@ -680,7 +845,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
         return;
       }
 
-      // final employeeId = employeeData['id']?.toString() ?? "";
+      final employeeId = employeeData['id']?.toString() ?? "";
       final email =
           employeeData['work_email']?.toString() ??
           employeeData['email']?.toString() ??
@@ -692,6 +857,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           file.path,
           filename: file.path.split("\\").last,
         ),
+        "user_id": employeeId,
         "email": email,
         "name": name,
         "employee_id": enployeecode,
@@ -771,6 +937,18 @@ class AttendanceCubit extends Cubit<AttendanceState> {
     return _smoothProductivity;
   }
 
+  void _resetDailyScreenshotCount() {
+    final today = DateTime.now();
+    if (_lastScreenshotDate == null ||
+        today.day != _lastScreenshotDate!.day ||
+        today.month != _lastScreenshotDate!.month ||
+        today.year != _lastScreenshotDate!.year) {
+      _screenshotsTakenToday = 0;
+      _lastScreenshotDate = today;
+      print("Reset daily screenshot count for new day");
+    }
+  }
+
   // =========================================
   // FETCH HOURS
   // =========================================
@@ -807,6 +985,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
         final rawCheckIn = item['check_in'];
 
         final rawCheckOut = item['check_out'];
+        print(workedHours);
 
         /// =====================================
         /// SAFE PARSE CHECK-IN
@@ -833,11 +1012,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
             final duration = DateTime.now().difference(checkIn);
 
             total += duration.inSeconds / 3600.0;
-          }
-          /// =====================================
-          /// COMPLETED SESSION
-          /// =====================================
-          else {
+          } else {
             /// If Odoo worked_hours is updated use it
             if (workedHours > 0) {
               total += workedHours;
@@ -865,9 +1040,6 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
     return total;
   }
-  // =========================================
-  // IP ADDRESS
-  // =========================================
 
   Future<String> _getIpAddress() async {
     try {
@@ -882,10 +1054,6 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
     return "0.0.0.0";
   }
-
-  // =========================================
-  // LOCATION
-  // =========================================
 
   Future<Position?> _getCurrentPosition() async {
     try {

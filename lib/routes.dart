@@ -6,6 +6,7 @@ import 'package:hrms_desktop/core/services/token_service.dart';
 import 'package:hrms_desktop/features/auth/login/presentation/login_page.dart';
 import 'package:hrms_desktop/features/in_out/cubit/all_in_out_cubit.dart';
 import 'package:hrms_desktop/features/in_out/presentation/in_out_page.dart';
+import 'package:hrms_desktop/features/leave/presentation/apply_leave_screen.dart';
 import 'package:hrms_desktop/features/main/presentation/main_page.dart';
 import 'package:hrms_desktop/features/onboard/onboard_page.dart';
 import 'package:hrms_desktop/features/profile/pages/change_password.dart';
@@ -45,6 +46,7 @@ class Routes {
   static String changepassword = '/changepassword';
   static String notifications = '/notifications';
   static String language = '/language';
+  static String applyLeave = '/apply-leave';
   static Map<String, WidgetBuilder> getAll() {
     return {
       onboarding: (c) => const OnboardingScreen(),
@@ -52,6 +54,7 @@ class Routes {
       // admin: (c) => AdminPanelScreen(),
       main: (c) => const MainPage(),
       leave: (c) => LeavePage(),
+      applyLeave: (c) => const ApplyLeaveScreen(),
       // myPay: (c) => PayrollScreen(),
    inOutReport: (c) => BlocProvider(
       create: (_) {

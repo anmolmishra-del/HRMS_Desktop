@@ -314,7 +314,7 @@ class OdooService {
     return response;
   }
 
-  /// Closes the Odoo client connection.
+ 
   void close() {
     
     _client.close();

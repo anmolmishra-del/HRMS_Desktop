@@ -165,13 +165,13 @@ Future<void> _pickBackgroundImage() async {
             title: "App Preferences",
             icon: Icons.app_settings_alt_rounded,
             children: [
-              _buildSwitchTile(
-                title: "Push Notifications",
-                subtitle: "Receive notifications for check-in/out reminders",
-                icon: Icons.notifications_rounded,
-                value: _notificationsEnabled,
-                onChanged: (value) => setState(() => _notificationsEnabled = value),
-              ),
+              // _buildSwitchTile(
+              //   title: "Push Notifications",
+              //   subtitle: "Receive notifications for check-in/out reminders",
+              //   icon: Icons.notifications_rounded,
+              //   value: _notificationsEnabled,
+              //   onChanged: (value) => setState(() => _notificationsEnabled = value),
+              // ),
               const SizedBox(height: 16),
               _buildSwitchTile(
                 title: "Dark Mode",

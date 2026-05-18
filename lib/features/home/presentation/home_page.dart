@@ -15,11 +15,14 @@ import 'package:hrms_desktop/core/widget/custom_shimer_card.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_state.dart';
 import 'package:hrms_desktop/features/in_out/presentation/in_out_page.dart';
+import 'package:hrms_desktop/features/leave/presentation/leave_list_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:hrms_desktop/features/home/presentation/productivity_page.dart';
-import 'package:hrms_desktop/features/home/presentation/settings_page.dart' as settings;
+import 'package:hrms_desktop/features/home/presentation/settings_page.dart'
+    as settings;
 import 'package:hrms_desktop/core/widget/glass_card.dart';
 import 'package:flutter/cupertino.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -30,8 +33,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
 
-
-  late final List  pages;
+  late final List pages;
 
   @override
   void initState() {
@@ -41,7 +43,7 @@ class _HomePageState extends State<HomePage> {
       const DashboardContent(),
 
       const AttendancePage(),
-      const AttendancePage(),
+      LeaveListScreen(),
       const ProductivityPage(),
 
       const settings.SettingsPage(),
@@ -73,7 +75,8 @@ class _HomePageState extends State<HomePage> {
                           : Image.file(
                               dart_io.File(themeState.backgroundImagePath),
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
                             ),
                     ),
                   // Semi-transparent overlay for readability
@@ -87,223 +90,238 @@ class _HomePageState extends State<HomePage> {
                     ),
                   Row(
                     children: [
-              /// SIDEBAR
-              Container(
-                width: 250,
+                      /// SIDEBAR
+                      Container(
+                        width: 250,
 
-                decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                        ),
 
-                child: Column(
-                  children: [
-                    const SizedBox(height: 30),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 30),
 
-                    Image.asset(
-                      themeState.themeMode == ThemeMode.dark ? AppImages.logo : AppImages.logoDark,
-                      height: 150,
-                      width: 150,
-                    ),
-
-                  
-
-                    // const Text(
-                    //   "OpzentoHR",
-
-                    //   style: TextStyle(
-                    //     color: Colors.white,
-                    //     fontSize: 24,
-                    //     fontWeight: FontWeight.bold,
-                    //   ),
-                    // ),
-                    const SizedBox(height: 20),
-
-                   
-                    _sideBarItem(
-                      context: context,
-                      icon: Icons.dashboard_rounded,
-
-                      title: AppLocalizations.of(context).dashboard,
-
-                      active: selectedIndex == 0,
-
-                      onTap: () {
-                        setState(() {
-                          selectedIndex = 0;
-                        });
-                      },
-                    ),
-
-                  
-                    _sideBarItem(
-                      context: context,
-                      icon: Icons.access_time_filled_rounded,
-
-                      title: AppLocalizations.of(context).attendance,
-
-                      active: selectedIndex == 1,
-
-                      onTap: () {
-                        setState(() {
-                          selectedIndex = 1;
-                        });
-                      },
-                    ),
-
-                    _sideBarItem(
-                      context: context,
-                      icon: Icons.leave_bags_at_home,
-
-                      title: AppLocalizations.of(context).leaves,
-
-                      active: selectedIndex == 2,
-
-                      onTap: () {
-                        setState(() {
-                          selectedIndex = 2;
-                        });
-                      },
-                    ),
-
-                 
-                    _sideBarItem(
-                      context: context,
-                      icon: Icons.bar_chart_rounded,
-
-                      title: AppLocalizations.of(context).productivity,
-
-                      active: selectedIndex == 3,
-
-                      onTap: () {
-                        setState(() {
-                          selectedIndex = 3;
-                        });
-                      },
-                    ),
-
-                
-                    _sideBarItem(
-                      context: context,
-                      icon: Icons.settings_rounded,
-
-                      title: AppLocalizations.of(context).settings,
-
-                      active: selectedIndex == 4,
-
-                      onTap: () {
-                        setState(() {
-                          selectedIndex = 4;
-                        });
-                      },
-                    ),
-
-                    const Spacer(),
-
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 22,
-
-                            backgroundColor: Colors.deepPurple.shade200,
-
-                            child: Icon(
-                              Icons.person,
-                              color: Theme.of(context).colorScheme.onPrimary,
+                            Image.asset(
+                              themeState.themeMode == ThemeMode.dark
+                                  ? AppImages.logo
+                                  : AppImages.logoDark,
+                              height: 150,
+                              width: 150,
                             ),
-                          ),
 
-                          const SizedBox(width: 12),
+                            // const Text(
+                            //   "OpzentoHR",
 
-                          Expanded(
-                            child: FutureBuilder(
-                              future: SharedPref().getObject('employee_data'),
+                            //   style: TextStyle(
+                            //     color: Colors.white,
+                            //     fontSize: 24,
+                            //     fontWeight: FontWeight.bold,
+                            //   ),
+                            // ),
+                            const SizedBox(height: 20),
 
-                              builder: (context, snapshot) {
-                                String employeeName = "Employee";
+                            _sideBarItem(
+                              context: context,
+                              icon: Icons.dashboard_rounded,
 
-                                String employeePost = "Staff";
+                              title: AppLocalizations.of(context).dashboard,
 
-                                if (snapshot.hasData && snapshot.data != null) {
-                                  final employee =
-                                      snapshot.data as Map<String, dynamic>;
+                              active: selectedIndex == 0,
 
-                                  employeeName =
-                                      employee['name']?.toString() ??
-                                      "Employee";
-
-                                  employeePost =
-                                      employee['job_title']?.toString() ??
-                                      "Staff";
-                                }
-
-                                return Row(
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-
-                                      children: [
-                                        Text(
-                                          employeeName,
-
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.onSurface,
-
-                                            fontWeight: FontWeight.w600,
-
-                                            fontSize: 15,
-                                          ),
-                                        ),
-
-                                        const SizedBox(height: 2),
-
-                                        Text(
-                                          employeePost,
-
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    Spacer(),
-                                    IconButton(
-                                      onPressed: () async {
-                                        final navigator = Navigator.of(context);
-
-                                        await context
-                                            .read<LoginCubit>()
-                                            .logout();
-
-                                        if (!context.mounted) return;
-
-                                        navigator.pushNamedAndRemoveUntil(
-                                          '/login',
-                                          (route) => false,
-                                        );
-                                      },
-
-                                      icon: Icon(
-                                        Icons.logout_rounded,
-
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                      ),
-                                    ),
-                                  ],
-                                );
+                              onTap: () {
+                                setState(() {
+                                  selectedIndex = 0;
+                                });
                               },
                             ),
-                          ),
-                        ],
+
+                            _sideBarItem(
+                              context: context,
+                              icon: Icons.access_time_filled_rounded,
+
+                              title: AppLocalizations.of(context).attendance,
+
+                              active: selectedIndex == 1,
+
+                              onTap: () {
+                                setState(() {
+                                  selectedIndex = 1;
+                                });
+                              },
+                            ),
+
+                            _sideBarItem(
+                              context: context,
+                              icon: Icons.leave_bags_at_home,
+
+                              title: AppLocalizations.of(context).leaves,
+
+                              active: selectedIndex == 2,
+
+                              onTap: () {
+                                setState(() {
+                                  selectedIndex = 2;
+                                });
+                              },
+                            ),
+
+                            _sideBarItem(
+                              context: context,
+                              icon: Icons.bar_chart_rounded,
+
+                              title: AppLocalizations.of(context).productivity,
+
+                              active: selectedIndex == 3,
+
+                              onTap: () {
+                                setState(() {
+                                  selectedIndex = 3;
+                                });
+                              },
+                            ),
+
+                            _sideBarItem(
+                              context: context,
+                              icon: Icons.settings_rounded,
+
+                              title: AppLocalizations.of(context).settings,
+
+                              active: selectedIndex == 4,
+
+                              onTap: () {
+                                setState(() {
+                                  selectedIndex = 4;
+                                });
+                              },
+                            ),
+
+                            const Spacer(),
+
+                            Padding(
+                              padding: const EdgeInsets.all(20),
+
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 22,
+
+                                    backgroundColor: Colors.deepPurple.shade200,
+
+                                    child: Icon(
+                                      Icons.person,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 12),
+
+                                  Expanded(
+                                    child: FutureBuilder(
+                                      future: SharedPref().getObject(
+                                        'employee_data',
+                                      ),
+
+                                      builder: (context, snapshot) {
+                                        String employeeName = "Employee";
+
+                                        String employeePost = "Staff";
+
+                                        if (snapshot.hasData &&
+                                            snapshot.data != null) {
+                                          final employee =
+                                              snapshot.data
+                                                  as Map<String, dynamic>;
+
+                                          employeeName =
+                                              employee['name']?.toString() ??
+                                              "Employee";
+
+                                          employeePost =
+                                              employee['job_title']
+                                                  ?.toString() ??
+                                              "Staff";
+                                        }
+
+                                        return Row(
+                                          children: [
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+
+                                              children: [
+                                                Text(
+                                                  employeeName,
+
+                                                  style: TextStyle(
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.onSurface,
+
+                                                    fontWeight: FontWeight.w600,
+
+                                                    fontSize: 15,
+                                                  ),
+                                                ),
+
+                                                const SizedBox(height: 2),
+
+                                                Text(
+                                                  employeePost,
+
+                                                  style: TextStyle(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withOpacity(0.7),
+
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+
+                                            Spacer(),
+                                            IconButton(
+                                              onPressed: () async {
+                                                final navigator = Navigator.of(
+                                                  context,
+                                                );
+
+                                                await context
+                                                    .read<LoginCubit>()
+                                                    .logout();
+
+                                                if (!context.mounted) return;
+
+                                                navigator
+                                                    .pushNamedAndRemoveUntil(
+                                                      '/login',
+                                                      (route) => false,
+                                                    );
+                                              },
+
+                                              icon: Icon(
+                                                Icons.logout_rounded,
+
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
 
                       /// PAGE CONTENT
                       Expanded(child: pages[selectedIndex]),
@@ -317,8 +335,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-
 }
 
 /// DASHBOARD PAGE
@@ -355,7 +371,7 @@ class _DashboardContentState extends State<DashboardContent> {
       listener: (context, state) {
         if (state.status == AttendanceStatus.success) {
           context.read<AttendanceReportCubit>().fetchReport();
-          
+
           // Trigger auto check-in only once after initial load
           if (!_autoCheckInAttempted) {
             _autoCheckInAttempted = true;
@@ -376,7 +392,7 @@ class _DashboardContentState extends State<DashboardContent> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
               children: [
-                 Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
@@ -395,7 +411,12 @@ class _DashboardContentState extends State<DashboardContent> {
                     Text(
                       AppLocalizations.of(context).todaysTasks,
 
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 16),
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),
@@ -651,14 +672,21 @@ Widget _sideBarItem({
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
 
       decoration: BoxDecoration(
-        color: active ? Theme.of(context).colorScheme.primary : Colors.transparent,
+        color: active
+            ? Theme.of(context).colorScheme.primary
+            : Colors.transparent,
 
         borderRadius: BorderRadius.circular(18),
       ),
 
       child: Row(
         children: [
-          Icon(icon, color: active ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface),
+          Icon(
+            icon,
+            color: active
+                ? Theme.of(context).colorScheme.onPrimary
+                : Theme.of(context).colorScheme.onSurface,
+          ),
 
           const SizedBox(width: 14),
 
@@ -666,7 +694,9 @@ Widget _sideBarItem({
             title,
 
             style: TextStyle(
-              color: active ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface,
+              color: active
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : Theme.of(context).colorScheme.onSurface,
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -796,7 +826,12 @@ class _ModernActivityTile extends StatelessWidget {
                       ? "${AppLocalizations.of(context).checkedInAt} ${DateFormat('hh:mm a').format(checkIn)} ${AppLocalizations.of(context).and} ${AppLocalizations.of(context).checkedOutAt} ${DateFormat('hh:mm a').format(checkOut)}"
                       : "${AppLocalizations.of(context).workingSessionStartedAt} ${DateFormat('hh:mm a').format(checkIn)}",
 
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 13),
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -815,7 +850,9 @@ class _ModernActivityTile extends StatelessWidget {
             ),
 
             child: Text(
-              completed ? AppLocalizations.of(context).completed : AppLocalizations.of(context).running,
+              completed
+                  ? AppLocalizations.of(context).completed
+                  : AppLocalizations.of(context).running,
 
               style: TextStyle(
                 color: completed ? Colors.green : Colors.orange,
@@ -898,11 +935,13 @@ Widget _graphBar(BuildContext context, String day, double height) {
         ),
       ),
       const SizedBox(height: 10),
-      Text(day,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          )),
+      Text(
+        day,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
     ],
   );
 }

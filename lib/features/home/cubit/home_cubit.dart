@@ -26,7 +26,9 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
   bool _isTracking = false;
 
+  int _screenshotsTakenToday = 0;
 
+  DateTime? _lastScreenshotDate;
 
   Future<void> loadTodayAttendance() async {
     
@@ -272,6 +274,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
     _isTracking = true;
 
+    _resetDailyScreenshotCount();
+
     print("Random screenshot tracking started");
 
     _scheduleNextScreenshot();
@@ -291,16 +295,20 @@ void _scheduleNextScreenshot() {
     return;
   }
 
+  if (_screenshotsTakenToday >= 32) {
+    print("Daily screenshot limit reached (32 screenshots). Stopping for the day.");
+    _isTracking = false;
+    return;
+  }
+
   /// CANCEL OLD TIMER
   _randomScreenshotTimer?.cancel();
 
-  /// RANDOM 10 - 20 SECONDS
-  final randomSeconds =
-      Random().nextInt(10) + 10;
+  final randomSeconds = Random().nextInt(300) + 600;
 
   print(
     "Next screenshot in "
-    "$randomSeconds seconds",
+    "${randomSeconds / 60} minutes",
   );
 
   _randomScreenshotTimer = Timer(
@@ -317,6 +325,8 @@ void _scheduleNextScreenshot() {
 
       try {
         await captureAndUpload();
+        _screenshotsTakenToday++;
+        print("Screenshots taken today: $_screenshotsTakenToday/32");
       } catch (e) {
         print(
           "Screenshot timer error => $e",
@@ -412,5 +422,17 @@ print(  formData.fields);
     stopRandomScreenshots();
 
     return super.close();
+  }
+
+  void _resetDailyScreenshotCount() {
+    final today = DateTime.now();
+    if (_lastScreenshotDate == null ||
+        today.day != _lastScreenshotDate!.day ||
+        today.month != _lastScreenshotDate!.month ||
+        today.year != _lastScreenshotDate!.year) {
+      _screenshotsTakenToday = 0;
+      _lastScreenshotDate = today;
+      print("Reset daily screenshot count for new day");
+    }
   }
 }

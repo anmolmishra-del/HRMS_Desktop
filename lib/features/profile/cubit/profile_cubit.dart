@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/token_service.dart';
 import '../state/profile_state.dart';
 
@@ -31,5 +32,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   ////////////////////////////////////////////////
   Future<void> logout() async {
     await TokenService.clear();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_logged_in', false);
   }
 }
