@@ -15,12 +15,14 @@ import 'package:hrms_desktop/core/services/app_usage_service.dart';
 import 'package:hrms_desktop/core/services/productivity_engine_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:win32/win32.dart';
 
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/features/home/cubit/screenshot_service.dart';
 import 'package:hrms_desktop/network/odoo_service.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'attendance_state.dart';
 
@@ -90,6 +92,9 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   int _minuteIdleSeconds = 0;
 
   double _smoothProductivity = 75;
+  Timer? _notificationTimer;
+
+  int _notificationCount = 0;
 
   // =========================================
   // CLEAR MESSAGE
@@ -368,23 +373,30 @@ class AttendanceCubit extends Cubit<AttendanceState> {
         /// =====================================
         /// ACTIVE AGAIN
         /// =====================================
-        else if (!currentlyIdle && _isIdle) {
-          print("USER ACTIVE AGAIN");
+      else if (!currentlyIdle && _isIdle) {
+  print("USER ACTIVE AGAIN");
 
-          _isIdle = false;
+  // RESET STATES
+  _isIdle = false;
+  _trackingPaused = false;
+  _dialogShown = false;
 
-          _trackingPaused = false;
+  // STOP TIMERS
+  _autoCheckoutTimer?.cancel();
+  _notificationTimer?.cancel();
 
-          _dialogShown = false;
+  // RESET COUNTER
+  _notificationCount = 0;
 
-          _autoCheckoutTimer?.cancel();
+  // CLOSE DIALOG
+  final context = navigatorKey.currentState?.overlay?.context;
 
-          final context = navigatorKey.currentState?.overlay?.context;
+  if (context != null && Navigator.canPop(context)) {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
 
-          if (context != null && Navigator.canPop(context)) {
-            Navigator.of(context, rootNavigator: true).pop();
-          }
-        }
+  print("IDLE WARNING RESET SUCCESS");
+}
 
         /// =====================================
         /// UPDATE UI
@@ -461,53 +473,122 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   // IDLE WARNING
   // =========================================
 
-  void _showIdleWarning() {
-    print("SHOWING IDLE WARNING DIALOG");
-    final context = navigatorKey.currentState?.overlay?.context;
+void _showIdleWarning() {
+  if (_dialogShown) {
+    print("DIALOG ALREADY SHOWN");
+    return;
+  }
 
-    if (context == null) {
-      print("CONTEXT IS NULL - Cannot show dialog");
+  _dialogShown = true;
+
+  print("SHOWING IDLE WARNING DIALOG");
+
+  final context = navigatorKey.currentState?.overlay?.context;
+
+  if (context == null) {
+    print("CONTEXT IS NULL");
+    return;
+  }
+
+  _autoCheckoutTimer?.cancel();
+  _notificationTimer?.cancel();
+
+  _notificationCount = 0;
+
+  _sendIdleNotification();
+
+  _notificationTimer =
+      Timer.periodic(const Duration(minutes: 2), (timer) {
+
+    // USER ACTIVE AGAIN => STOP
+    if (!_isIdle) {
+      print("USER ACTIVE -> STOPPING NOTIFICATIONS");
+
+      timer.cancel();
+
       return;
     }
 
-    _autoCheckoutTimer?.cancel();
+    _notificationCount++;
 
-    print("SETTING AUTO CHECKOUT TIMER FOR 1 MINUTE");
-    _autoCheckoutTimer = Timer(const Duration(minutes: 1), () {
-      print("AUTO CHECKOUT TIMER FIRED");
+    print("NOTIFICATION COUNT : $_notificationCount");
+
+    if (_notificationCount >= 3) {
+      timer.cancel();
+
+      print("AUTO CHECKOUT STARTED");
+
+      if (Navigator.canPop(context)) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
       _performAutoCheckout();
-    });
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Inactivity detected"),
+      return;
+    }
 
-          content: const Text("Are you still working?"),
+    _sendIdleNotification();
+  });
 
-          actions: [
-            TextButton(
-              onPressed: () {
-                print("USER CLICKED CONTINUE WORKING");
-                Navigator.pop(context);
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) {
+      return AlertDialog(
+        title: const Text("Inactivity Detected"),
 
-                _trackingPaused = false;
+        content: const Text(
+          "You have been inactive.\nPlease confirm you are still working.",
+        ),
 
-                _dialogShown = false;
+        actions: [
+          TextButton(
+            onPressed: () {
+              print("USER CLICKED CONTINUE WORKING");
 
-                _isIdle = false;
+              Navigator.pop(context);
 
-                _autoCheckoutTimer?.cancel();
-              },
+              _trackingPaused = false;
+              _dialogShown = false;
+              _isIdle = false;
 
-              child: const Text("Continue Working"),
-            ),
-          ],
-        );
-      },
+              _autoCheckoutTimer?.cancel();
+              _notificationTimer?.cancel();
+
+              _notificationCount = 0;
+            },
+
+            child: const Text("Continue Working"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  void _sendIdleNotification() {
+    final notification = LocalNotification(
+      title: 'Idle Warning',
+      body:
+          'You are inactive. Please continue working or you will be auto checked out.',
     );
+
+    notification.onClick = () async {
+      print("NOTIFICATION CLICKED");
+
+      // SHOW APP
+      await windowManager.show();
+
+      // RESTORE IF MINIMIZED
+      await windowManager.restore();
+
+      // FOCUS WINDOW
+      await windowManager.focus();
+    };
+
+    notification.show();
+
+    print("WINDOWS NOTIFICATION SENT");
   }
 
   Future<void> _performAutoCheckout() async {

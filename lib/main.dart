@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
+import 'package:local_notifier/local_notifier.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
@@ -16,7 +17,10 @@ import 'package:hrms_desktop/routes.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
- 
+  await localNotifier.setup(
+    appName: 'Opsentra',
+    shortcutPolicy: ShortcutPolicy.requireCreate,
+  );
 
   await windowManager.ensureInitialized();
 
