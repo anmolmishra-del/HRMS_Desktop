@@ -22,54 +22,52 @@ class MetricCard extends StatelessWidget {
     final colors =
         Theme.of(context).colorScheme;
 
-    return Expanded(
-      child: Container(
-        padding:
-            const EdgeInsets.all(24),
+    return Container(
+      padding:
+          const EdgeInsets.all(24),
 
-        decoration: BoxDecoration(
-          color: colors.surface,
+      decoration: BoxDecoration(
+        color: colors.surface,
 
-          borderRadius:
-              BorderRadius.circular(20),
-        ),
+        borderRadius:
+            BorderRadius.circular(20),
+      ),
 
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
 
-          children: [
-            Text(
-              title,
+        children: [
+          Text(
+            title,
 
-              style: TextStyle(
-                fontSize: 14,
+            style: TextStyle(
+              fontSize: 14,
 
-                color: colors.onSurface
-                    .withOpacity(0.6),
-              ),
+              color: colors.onSurface
+                  .withOpacity(0.6),
             ),
+          ),
 
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-            Text(
-              value,
+          Text(
+            value,
 
-              style: TextStyle(
-                fontSize: 36,
+            style: TextStyle(
+              fontSize: 36,
 
-                fontWeight:
-                    FontWeight.bold,
+              fontWeight:
+                  FontWeight.bold,
 
-                color: color,
-              ),
+              color: color,
             ),
+          ),
 
-            const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-            Text(subtitle),
-          ],
-        ),
+          Text(subtitle),
+        ],
       ),
     );
   }

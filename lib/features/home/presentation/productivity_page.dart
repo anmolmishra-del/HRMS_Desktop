@@ -15,18 +15,7 @@ class ProductivityPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    return BlocProvider(
-
-      create:
-          (_) =>
-              ProductivityCubit()
-                ..startTracking(),
-
-      child:
-          BlocBuilder<
-              ProductivityCubit,
-              ProductivityState>(
+    return BlocBuilder<ProductivityCubit, ProductivityState>(
 
         builder:
             (context, state) {
@@ -306,7 +295,6 @@ class ProductivityPage extends StatelessWidget {
             ),
           );
         },
-      ),
-    );
+      );
   }
 }

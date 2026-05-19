@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
 
 class ScreenshotService {
 
@@ -8,31 +7,46 @@ class ScreenshotService {
 
     try {
 
+      // =========================
       // DOCUMENT DIRECTORY
-      final documentsDir =
-          await getApplicationDocumentsDirectory();
+      // =========================
 
-      // CREATE FOLDER
-      final screenshotDir = Directory(
-        "${documentsDir.path}/HRMS_Screenshots",
-      );
+      // final documentsDir =
+      //     await getApplicationDocumentsDirectory();
 
-      if (!await screenshotDir.exists()) {
+      // =========================
+      // CREATE SCREENSHOT FOLDER
+      // =========================
 
-        await screenshotDir.create(
-          recursive: true,
-        );
-      }
+      // final screenshotDir = Directory(
+      //   "${documentsDir.path}/HRMS_Screenshots",
+      // );
 
+      // if (!await screenshotDir.exists()) {
+
+      //   await screenshotDir.create(
+      //     recursive: true,
+      //   );
+      // }
+
+      // =========================
       // FILE NAME
+      // =========================
+
       final now = DateTime.now();
 
       final fileName =
           "${now.millisecondsSinceEpoch}.png";
 
+      // =========================
       // WINDOWS SAFE PATH
-      final filePath =
-          "${screenshotDir.path}\\$fileName";
+      // =========================
+
+      // final filePath =
+      //     "${screenshotDir.path}\\$fileName";
+
+      // TEMP PATH
+      final filePath = fileName;
 
       // =========================
       // WINDOWS
@@ -112,14 +126,11 @@ public class DPI {
 
       else if (Platform.isLinux) {
 
-        final linuxPath =
-            "${screenshotDir.path}/$fileName";
-
         final result = await Process.run(
           'gnome-screenshot',
           [
             '-f',
-            linuxPath,
+            filePath,
           ],
         );
 

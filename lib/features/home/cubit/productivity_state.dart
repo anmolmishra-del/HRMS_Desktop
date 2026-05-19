@@ -32,10 +32,10 @@ class ProductivityState extends Equatable {
     this.productivityPercent = 0,
 
     this.focusTime =
-        "0h 0m 0s",
+        "0h",
 
     this.idleTime =
-        "0h 0m 0s",
+        "0h",
 
     this.totalKeys = 0,
 

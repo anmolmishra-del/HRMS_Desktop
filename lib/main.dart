@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 import 'package:local_notifier/local_notifier.dart';
 
+import 'package:hrms_desktop/core/navigation/navigator_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -12,6 +13,8 @@ import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/features/leave/cubit/leave_cubit.dart';
+import 'package:hrms_desktop/features/home/cubit/productivity_cubit.dart';
+import 'package:hrms_desktop/features/chat/cubit/chat_cubit.dart';
 import 'package:hrms_desktop/routes.dart';
 
 void main() async {
@@ -61,7 +64,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WindowListener {
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -100,23 +102,29 @@ class _MyAppState extends State<MyApp> with WindowListener {
             return MultiBlocProvider(
               providers: [
                 BlocProvider<ThemeCubit>(
-    create: (_) => ThemeCubit(),
-  ),
-                BlocProvider(
-                  create: (_) => AttendanceCubit(navigatorKey)..loadInitialStatus(),
+                  create: (_) => ThemeCubit(),
                 ),
-                 BlocProvider<LoginCubit>(
+                BlocProvider(
+                  create: (_) => AttendanceCubit(NavigatorService.navigatorKey)..loadInitialStatus(),
+                ),
+                BlocProvider<LoginCubit>(
                   create: (_) => LoginCubit(),
                 ),
                 BlocProvider(
                   create: (_) => LeaveCubit(),
+                ),
+                BlocProvider(
+                  create: (_) => ProductivityCubit(),
+                ),
+                BlocProvider(
+                  create: (_) => ChatCubit(),
                 ),
               ],
 
               child: BlocBuilder<ThemeCubit, ThemeState>(
                 builder: (context, themeState) {
                   return MaterialApp(
-                    navigatorKey: navigatorKey,
+                    navigatorKey: NavigatorService.navigatorKey,
 
                     debugShowCheckedModeBanner: false,
 

@@ -10,7 +10,12 @@ import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'productivity_state.dart';
 
 class ProductivityCubit extends Cubit<ProductivityState> {
-  ProductivityCubit() : super(const ProductivityState());
+  // FIX: Converted to singleton so its state can be updated instantly from AttendanceCubit on Check-in/out
+  static final ProductivityCubit _instance = ProductivityCubit._internal();
+
+  factory ProductivityCubit() => _instance;
+
+  ProductivityCubit._internal() : super(const ProductivityState());
 
   Timer? _timer;
 
@@ -37,9 +42,13 @@ Future<void> startTracking() async {
   final engine = ProductivityEngineService();
 
   await engine.startTracking();
+  await AppUsageService().startTracking();
 
   _timer?.cancel();
   _apiTimer?.cancel();
+
+  // FIX: Immediately update state after loading data rather than waiting 1s for the periodic timer
+  _updateState();
 
   _timer = Timer.periodic(
     const Duration(seconds: 1),
@@ -50,15 +59,19 @@ Future<void> startTracking() async {
 
   print("STARTING API TIMER");
 
+  // FIX: Sync performance/productivity data every 15 minutes as requested
   _apiTimer = Timer.periodic(
-    const Duration(seconds: 1), // TEMP TEST
+    const Duration(minutes: 15),
     (_) async {
-      print("CALLING PERFORMANCE API");
-
       await _sendPerformanceData();
     },
   );
 }
+
+  // FIX: Force immediate UI state update without waiting for the 1-second periodic timer
+  void updateStateImmediately() {
+    _updateState();
+  }
   /// =====================================
   /// UPDATE UI
   /// =====================================
@@ -91,13 +104,14 @@ Future<void> startTracking() async {
 
       final prefs = SharedPref();
 
-      final employeeData =
-          await prefs.getObject('employee_data');
+      final isLoggedIn = await prefs.getBool('is_logged_in') ?? false;
+      final employeeData = await prefs.getObject('employee_data');
 
-      if (employeeData == null) {
-        print("EMPLOYEE DATA NOT FOUND");
+      if (!isLoggedIn || employeeData == null) {
         return;
       }
+
+      print("CALLING PERFORMANCE API");
 
       final userId = employeeData['id'] ?? 0;
 
@@ -143,16 +157,14 @@ Future<void> startTracking() async {
 
   void stopTracking() {
     _timer?.cancel();
-
     _apiTimer?.cancel();
+    ProductivityEngineService().stopTracking();
+    AppUsageService().stopTracking();
   }
 
   @override
   Future<void> close() {
-    _timer?.cancel();
-
-    _apiTimer?.cancel();
-
+    stopTracking();
     return super.close();
   }
 }

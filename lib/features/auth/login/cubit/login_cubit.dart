@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/network/odoo_service.dart';
+import 'package:hrms_desktop/features/home/cubit/productivity_cubit.dart';
+import 'package:hrms_desktop/core/services/productivity_engine_service.dart';
+import 'package:hrms_desktop/core/services/app_usage_service.dart';
 import '../state/login_state.dart';
 
 class LoginCubit extends Cubit<LoginState> {
@@ -205,6 +208,11 @@ class LoginCubit extends Cubit<LoginState> {
     debugPrint('--- Logout Process Started ---');
     final prefs = SharedPref();
     await _clearSessionData(prefs);
+
+    ProductivityCubit().stopTracking();
+    ProductivityEngineService().stopTracking();
+    AppUsageService().stopTracking();
+
     emit(state.copyWith(status: LoginStatus.initial));
     debugPrint('--- Logout Process Complete ---');
   }

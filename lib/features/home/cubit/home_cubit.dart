@@ -304,11 +304,13 @@ void _scheduleNextScreenshot() {
   /// CANCEL OLD TIMER
   _randomScreenshotTimer?.cancel();
 
-  final randomSeconds = Random().nextInt(300) + 600;
+  // FIX: Capture random screenshot between 15 and 30 minutes as requested
+  /// RANDOM 15-30 MINUTES
+  final randomSeconds = Random().nextInt(15 * 60 + 1) + 15 * 60;
 
   print(
     "Next screenshot in "
-    "${randomSeconds / 60} minutes",
+    "${(randomSeconds / 60).toStringAsFixed(1)} minutes",
   );
 
   _randomScreenshotTimer = Timer(

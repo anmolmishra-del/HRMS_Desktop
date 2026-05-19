@@ -5,6 +5,7 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/material.dart';
 import 'package:win32/win32.dart';
 
+import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'productivity_engine_service.dart';
 
 class AppUsageService {
@@ -39,6 +40,56 @@ class AppUsageService {
   String _currentCategory = "";
 
   DateTime? _lastSwitchTime;
+
+  static const String _keyAppUsageDate = 'app_usage_last_date';
+  static const String _keyAppUsageData = 'app_usage_data_map';
+  String _currentDateStr = "";
+  int _saveCounter = 0;
+
+  /// =====================================
+  /// DATA PERSISTENCE
+  /// =====================================
+
+  Future<void> _loadData() async {
+    final pref = SharedPref();
+    final lastDateStr = await pref.getString(_keyAppUsageDate);
+    final today = DateTime.now();
+    final todayStr = '${today.year}-${today.month}-${today.day}';
+
+    if (lastDateStr == null || lastDateStr != todayStr) {
+      _resetDailyData();
+      await pref.saveString(_keyAppUsageDate, todayStr);
+      _currentDateStr = todayStr;
+    } else {
+      _currentDateStr = todayStr;
+      final savedData = await pref.getObject(_keyAppUsageData);
+      if (savedData != null && savedData is Map) {
+        savedData.forEach((key, value) {
+          if (_categoryUsageData.containsKey(key) && value != null) {
+            final seconds = int.tryParse(value.toString()) ?? 0;
+            _categoryUsageData[key.toString()] = Duration(seconds: seconds);
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> _saveData() async {
+    final pref = SharedPref();
+    final Map<String, int> dataToSave = {};
+    _categoryUsageData.forEach((key, value) {
+      dataToSave[key] = value.inSeconds;
+    });
+    await pref.saveObject(_keyAppUsageData, dataToSave);
+  }
+
+  void _resetDailyData() {
+    _categoryUsageData.updateAll((key, value) => Duration.zero);
+    _currentCategory = "";
+    _lastSwitchTime = null;
+    _saveData();
+    print("DAILY APP USAGE RESET");
+  }
 
   /// =====================================
   /// APP CATEGORY MAP
@@ -86,7 +137,8 @@ class AppUsageService {
   /// START TRACKING
   /// =====================================
 
-  void startTracking() {
+  // FIX: Converted startTracking to async and awaited _loadData to ensure data is fully loaded when called
+  Future<void> startTracking() async {
 
     if (_trackingTimer?.isActive ?? false) {
 
@@ -100,6 +152,8 @@ class AppUsageService {
     print(
       "APP USAGE TRACKING STARTED",
     );
+
+    await _loadData();
 
     _lastSwitchTime =
         DateTime.now();
@@ -144,6 +198,13 @@ class AppUsageService {
         }
 
         final now = DateTime.now();
+        final todayStr = '${now.year}-${now.month}-${now.day}';
+        if (_currentDateStr.isNotEmpty && _currentDateStr != todayStr) {
+          print("NEW DAY DETECTED IN APP USAGE -> CLEARING");
+          _resetDailyData();
+          _currentDateStr = todayStr;
+          SharedPref().saveString(_keyAppUsageDate, todayStr);
+        }
 
         /// =====================================
         /// FIRST CATEGORY
@@ -220,6 +281,12 @@ class AppUsageService {
           "CATEGORY USAGE => "
           "$_categoryUsageData",
         );
+
+        _saveCounter++;
+        if (_saveCounter >= 5) {
+          _saveData();
+          _saveCounter = 0;
+        }
       },
     );
   }
@@ -233,6 +300,8 @@ class AppUsageService {
     print(
       "STOP APP TRACKING",
     );
+
+    _saveData();
 
     _trackingTimer?.cancel();
 
@@ -467,6 +536,8 @@ String formatDuration(
     _currentCategory = "";
 
     _lastSwitchTime = null;
+
+    _saveData();
 
     print(
       "APP USAGE CLEARED",

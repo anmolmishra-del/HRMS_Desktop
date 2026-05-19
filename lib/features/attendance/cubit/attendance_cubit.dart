@@ -21,6 +21,7 @@ import 'package:win32/win32.dart';
 
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/features/home/cubit/screenshot_service.dart';
+import 'package:hrms_desktop/features/home/cubit/productivity_cubit.dart';
 import 'package:hrms_desktop/network/odoo_service.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -91,7 +92,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
   int _minuteIdleSeconds = 0;
 
-  double _smoothProductivity = 75;
+  double _smoothProductivity = 0;
   Timer? _notificationTimer;
 
   int _notificationCount = 0;
@@ -232,29 +233,32 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
         _listenActivityStream();
 
-        //_startProductivityTimer();
-        ProductivityEngineService().startTracking();
+        // FIX: Start productivity and app usage tracking only when user is checked in
+        await ProductivityCubit().startTracking();
 
         startRandomScreenshots();
 
         await _methodChannel.invokeMethod('startTracking');
-
-        AppUsageService().startTracking();
 
         print("TRACKING AUTO RESUMED");
       }
 
       final baseHours = await _fetchBaseHours();
       print(baseHours);
+      // FIX: Initialize metrics directly from ProductivityEngineService so stats persist across app restarts
+      final engine = ProductivityEngineService();
       emit(
         state.copyWith(
           status: AttendanceStatus.success,
           isCheckedIn: isCheckedIn,
           baseHours: baseHours,
           todayHours: _formatHours(baseHours),
-          productiveHours: productiveHours,
-          idleHours: _idleSeconds / 3600.0,
-          productivityPercent: productivityPercent,
+          productiveHours: engine.activeSeconds / 3600.0,
+          idleHours: engine.idleSeconds / 3600.0,
+          productivityPercent: engine.productivity,
+          totalKeys: engine.totalKeys,
+          totalClicks: engine.totalClicks,
+          totalMoves: engine.totalMoves,
         ),
       );
 
@@ -364,10 +368,9 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
           _isIdle = true;
 
-          _dialogShown = true;
-
           _trackingPaused = true;
 
+          // FIX: Removed premature _dialogShown = true assignment so the dialog is not blocked by its own check
           _showIdleWarning();
         }
         /// =====================================
@@ -389,7 +392,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   _notificationCount = 0;
 
   // CLOSE DIALOG
-  final context = navigatorKey.currentState?.overlay?.context;
+  // FIX: Using navigatorKey.currentContext to guarantee non-null BuildContext for pop
+  final context = navigatorKey.currentContext;
 
   if (context != null && Navigator.canPop(context)) {
     Navigator.of(context, rootNavigator: true).pop();
@@ -483,7 +487,8 @@ void _showIdleWarning() {
 
   print("SHOWING IDLE WARNING DIALOG");
 
-  final context = navigatorKey.currentState?.overlay?.context;
+  // FIX: Using navigatorKey.currentContext to guarantee non-null BuildContext when showing dialog
+  final context = navigatorKey.currentContext;
 
   if (context == null) {
     print("CONTEXT IS NULL");
@@ -623,14 +628,12 @@ void _showIdleWarning() {
 
         _listenActivityStream();
 
-        //  _startProductivityTimer();
+        // FIX: Start productivity and app usage tracking only when user is checked in
+        await ProductivityCubit().startTracking();
 
         startRandomScreenshots();
-        ProductivityEngineService().startTracking();
 
         await _methodChannel.invokeMethod('startTracking');
-
-        AppUsageService().startTracking();
 
         print("TRACKING STARTED");
       }
@@ -641,8 +644,7 @@ void _showIdleWarning() {
         _isTracking = false;
 
         stopRandomScreenshots();
-        ProductivityEngineService().stopTracking();
-        ProductivityEngineService().reset();
+        ProductivityCubit().stopTracking();
         _productivityTimer?.cancel();
 
         await _activitySubscription?.cancel();
@@ -651,7 +653,8 @@ void _showIdleWarning() {
 
         await _methodChannel.invokeMethod('stopTracking');
 
-        AppUsageService().stopTracking();
+        // FIX: Update ProductivityCubit immediately on check-out so UI reflects final preserved daily metrics
+        ProductivityCubit().updateStateImmediately();
 
         print("TRACKING STOPPED");
 
@@ -682,38 +685,19 @@ void _showIdleWarning() {
 
         _autoCheckoutTimer?.cancel();
 
-        /// DO NOT RESET IMMEDIATELY
-        Future.delayed(const Duration(minutes: 5), () {
-          _totalKeys = 0;
-          _totalClicks = 0;
-          _totalMoves = 0;
-          _activeSeconds = 0;
-          _idleSeconds = 0;
-        });
-
+        // FIX: Retain existing productiveHours, idleHours, productivityPercent, and activity counts on check-out so dashboard retains daily summary
         emit(
           state.copyWith(
             status: AttendanceStatus.success,
             isCheckedIn: false,
-
-            /// IMPORTANT FIX
             baseHours: finalTotalHours,
-
-            /// IMPORTANT FIX
             todayHours: _formatHours(finalTotalHours),
-
-            productiveHours: productiveHours,
-
-            idleHours: _idleSeconds / 3600,
-
-            productivityPercent: _smoothProductivity,
-
-            totalKeys: _totalKeys,
-
-            totalClicks: _totalClicks,
-
-            totalMoves: _totalMoves,
-
+            productiveHours: state.productiveHours,
+            idleHours: state.idleHours,
+            productivityPercent: state.productivityPercent,
+            totalKeys: state.totalKeys,
+            totalClicks: state.totalClicks,
+            totalMoves: state.totalMoves,
             successMessage: isAutoCheckout
                 ? "Auto checked out"
                 : "Checked out successfully",
@@ -726,7 +710,8 @@ void _showIdleWarning() {
       /// =========================================
       /// NORMAL STATE UPDATE
       /// =========================================
-
+      // FIX: Load accurate metrics from ProductivityEngineService on check-in
+      final engine = ProductivityEngineService();
       emit(
         state.copyWith(
           status: AttendanceStatus.success,
@@ -735,15 +720,15 @@ void _showIdleWarning() {
               ? "Checked in successfully"
               : "Checked out successfully",
           productiveHours: updatedState
-              ? productiveHours
+              ? engine.activeSeconds / 3600.0
               : state.productiveHours,
-          idleHours: updatedState ? _idleSeconds / 3600 : state.idleHours,
+          idleHours: updatedState ? engine.idleSeconds / 3600.0 : state.idleHours,
           productivityPercent: updatedState
-              ? _smoothProductivity
+              ? engine.productivity
               : state.productivityPercent,
-          totalKeys: updatedState ? _totalKeys : state.totalKeys,
-          totalClicks: updatedState ? _totalClicks : state.totalClicks,
-          totalMoves: updatedState ? _totalMoves : state.totalMoves,
+          totalKeys: updatedState ? engine.totalKeys : state.totalKeys,
+          totalClicks: updatedState ? engine.totalClicks : state.totalClicks,
+          totalMoves: updatedState ? engine.totalMoves : state.totalMoves,
         ),
       );
     } catch (e) {
@@ -808,12 +793,13 @@ void _showIdleWarning() {
       return;
     }
 
-    /// RANDOM 15-30 SECONDS
-    final randomSeconds = Random().nextInt(15) + 15;
+    // FIX: Capture random screenshot between 15 and 30 minutes as requested
+    /// RANDOM 15-30 MINUTES
+    final randomSeconds = Random().nextInt(15 * 60 + 1) + 15 * 60;
 
     print(
       "Next screenshot in "
-      "$randomSeconds seconds",
+      "${(randomSeconds / 60).toStringAsFixed(1)} minutes",
     );
 
     _randomScreenshotTimer = Timer(Duration(seconds: randomSeconds), () async {

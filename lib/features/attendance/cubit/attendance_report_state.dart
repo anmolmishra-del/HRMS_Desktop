@@ -9,6 +9,7 @@ class AttendanceReportState extends Equatable {
   final DateTime fromDate;
   final DateTime toDate;
   final List<dynamic> records; // List of attendance records fetched from Odoo
+  final Map<String, double> weeklyProductivity; // Date string (YYYY-MM-DD) -> Productivity percentage
   final String? errorMessage;
 
   const AttendanceReportState({
@@ -16,6 +17,7 @@ class AttendanceReportState extends Equatable {
     required this.fromDate,
     required this.toDate,
     this.records = const [],
+    this.weeklyProductivity = const {},
     this.errorMessage,
   });
 
@@ -25,6 +27,7 @@ class AttendanceReportState extends Equatable {
     DateTime? fromDate,
     DateTime? toDate,
     List<dynamic>? records,
+    Map<String, double>? weeklyProductivity,
     String? errorMessage,
   }) {
     return AttendanceReportState(
@@ -32,10 +35,11 @@ class AttendanceReportState extends Equatable {
       fromDate: fromDate ?? this.fromDate,
       toDate: toDate ?? this.toDate,
       records: records ?? this.records,
+      weeklyProductivity: weeklyProductivity ?? this.weeklyProductivity,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [status, fromDate, toDate, records, errorMessage];
+  List<Object?> get props => [status, fromDate, toDate, records, weeklyProductivity, errorMessage];
 }

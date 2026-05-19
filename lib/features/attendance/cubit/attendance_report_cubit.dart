@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/network/odoo_service.dart';
+import 'package:hrms_desktop/core/services/api_service.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'attendance_report_state.dart';
 
@@ -45,10 +46,31 @@ class AttendanceReportCubit extends Cubit<AttendanceReportState> {
 
       debugPrint('AttendanceReportCubit: Raw results count=${results.length}');
       
-      // Emit success state with the retrieved records
+      // Fetch dynamic weekly productivity trend only if it hasn't been loaded yet
+      Map<String, double> weeklyProd = Map<String, double>.from(state.weeklyProductivity);
+      if (weeklyProd.isEmpty) {
+        try {
+          final apiService = ApiService();
+          final prodResponse = await apiService.get('/api/data/performance/average/$empId');
+          if (prodResponse.data != null && prodResponse.data is Map) {
+            final Map rawMap = prodResponse.data;
+            weeklyProd = rawMap.map(
+              (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
+            );
+          }
+          debugPrint('AttendanceReportCubit: Weekly productivity trend map fetched: $weeklyProd');
+        } catch (prodError) {
+          debugPrint('AttendanceReportCubit: Failed to fetch weekly productivity average: $prodError');
+        }
+      } else {
+        debugPrint('AttendanceReportCubit: Reusing cached weekly productivity trend: $weeklyProd');
+      }
+
+      // Emit success state with the retrieved records and productivity map
       emit(state.copyWith(
         status: ReportStatus.success,
         records: results,
+        weeklyProductivity: weeklyProd,
       ));
       
       odooService.close();

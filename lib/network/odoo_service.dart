@@ -319,4 +319,89 @@ class OdooService {
     
     _client.close();
   }
+
+
+    /// Fetches notifications for a specific partner.
+  Future<List<dynamic>> fetchNotifications(int partnerId) async {
+    debugPrint('OdooService: fetchNotifications partnerId=$partnerId - Fetching metadata...');
+    // 1. Fetch notification metadata
+    final notifications = await executeModelMethod(
+      'mail.notification',
+      'search_read',
+      [],
+      kwargs: {
+        'domain': [['res_partner_id', '=', partnerId]],
+        'fields': [
+          'id', 'notification_status', 'mail_message_id', 'notification_type',
+          'is_read', 'read_date', 'failure_type', 'failure_reason', 'res_partner_id'
+        ],
+        'order': 'id desc',
+        'limit': 50,
+      },
+    );
+
+    debugPrint('OdooService: fetchNotifications Metadata Response: $notifications');
+
+    if (notifications is! List || notifications.isEmpty) {
+      debugPrint('OdooService: fetchNotifications - No notifications found.');
+      return [];
+    }
+
+    // 2. Extract message IDs and fetch their details (Subject, Body, Date)
+    final messageIds = notifications
+        .map((n) => n['mail_message_id'])
+        .where((m) => m is List && m.isNotEmpty)
+        .map((m) => m[0] as int)
+        .toSet()
+        .toList();
+
+    debugPrint('OdooService: fetchNotifications - Fetching details for ${messageIds.length} messages...');
+
+    if (messageIds.isEmpty) return notifications;
+
+    final messages = await executeModelMethod(
+      'mail.message',
+      'search_read',
+      [],
+      kwargs: {
+        'domain': [['id', 'in', messageIds]],
+        'fields': ['id', 'subject', 'body', 'date'],
+      },
+    );
+
+    debugPrint('OdooService: fetchNotifications Message Details Response: $messages');
+
+    // 3. Map message details back to notifications
+    if (messages is List) {
+      final messageMap = {for (var m in messages) m['id']: m};
+      for (var n in notifications) {
+        final mId = n['mail_message_id'];
+        if (mId is List && mId.isNotEmpty) {
+          final mDetails = messageMap[mId[0]];
+          if (mDetails != null) {
+            n['message_subject'] = mDetails['subject'];
+            n['message_body'] = mDetails['body'];
+            n['message_date'] = mDetails['date'];
+          }
+        }
+      }
+    }
+
+    return notifications;
+  }
+
+  /// Marks a notification as read.
+  Future<void> markNotificationAsRead(int notificationId) async {
+    debugPrint('OdooService: markNotificationAsRead notificationId=$notificationId');
+    await executeModelMethod(
+      'mail.notification',
+      'write',
+      [[notificationId], {
+        'is_read': true,
+        'read_date': DateTime.now().toUtc().toIso8601String(),
+      }],
+    );
+    debugPrint('OdooService: markNotificationAsRead - Success');
+  }
+
 }

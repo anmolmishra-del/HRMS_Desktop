@@ -20,6 +20,8 @@ import 'package:intl/intl.dart';
 import 'package:hrms_desktop/features/home/presentation/productivity_page.dart';
 import 'package:hrms_desktop/features/home/presentation/settings_page.dart'
     as settings;
+import 'package:hrms_desktop/features/chat/presentation/chat_listpage.dart';
+import 'package:hrms_desktop/features/chat/cubit/chat_cubit.dart';
 import 'package:hrms_desktop/core/widget/glass_card.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -45,9 +47,17 @@ class _HomePageState extends State<HomePage> {
       const AttendancePage(),
       LeaveListScreen(),
       const ProductivityPage(),
+      const ChatListPage(),
 
       const settings.SettingsPage(),
     ];
+
+    // CRITICAL: Initialize Chat background polling, WebSockets, and notifications immediately at app launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ChatCubit>().initChat();
+      }
+    });
   }
 
   @override
@@ -100,103 +110,115 @@ class _HomePageState extends State<HomePage> {
 
                         child: Column(
                           children: [
-                            const SizedBox(height: 30),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  children: [
+                                    const SizedBox(height: 30),
 
-                            Image.asset(
-                              themeState.themeMode == ThemeMode.dark
-                                  ? AppImages.logo
-                                  : AppImages.logoDark,
-                              height: 150,
-                              width: 150,
+                                    Image.asset(
+                                      themeState.themeMode == ThemeMode.dark
+                                          ? AppImages.logo
+                                          : AppImages.logoDark,
+                                      height: 120,
+                                      width: 120,
+                                    ),
+
+                                    const SizedBox(height: 15),
+
+                                    _sideBarItem(
+                                      context: context,
+                                      icon: Icons.dashboard_rounded,
+
+                                      title: AppLocalizations.of(context).dashboard,
+
+                                      active: selectedIndex == 0,
+
+                                      onTap: () {
+                                        setState(() {
+                                          selectedIndex = 0;
+                                        });
+                                      },
+                                    ),
+
+                                    _sideBarItem(
+                                      context: context,
+                                      icon: Icons.access_time_filled_rounded,
+
+                                      title: AppLocalizations.of(context).attendance,
+
+                                      active: selectedIndex == 1,
+
+                                      onTap: () {
+                                        setState(() {
+                                          selectedIndex = 1;
+                                        });
+                                      },
+                                    ),
+
+                                    _sideBarItem(
+                                      context: context,
+                                      icon: Icons.leave_bags_at_home,
+
+                                      title: AppLocalizations.of(context).leaves,
+
+                                      active: selectedIndex == 2,
+
+                                      onTap: () {
+                                        setState(() {
+                                          selectedIndex = 2;
+                                        });
+                                      },
+                                    ),
+
+                                    _sideBarItem(
+                                      context: context,
+                                      icon: Icons.bar_chart_rounded,
+
+                                      title: AppLocalizations.of(context).productivity,
+
+                                      active: selectedIndex == 3,
+
+                                      onTap: () {
+                                        setState(() {
+                                          selectedIndex = 3;
+                                        });
+                                      },
+                                    ),
+
+                                    _sideBarItem(
+                                      context: context,
+                                      icon: Icons.forum_rounded,
+
+                                      title: AppLocalizations.of(context).chat,
+
+                                      active: selectedIndex == 4,
+
+                                      onTap: () {
+                                        setState(() {
+                                          selectedIndex = 4;
+                                        });
+                                      },
+                                    ),
+
+                                    _sideBarItem(
+                                      context: context,
+                                      icon: Icons.settings_rounded,
+
+                                      title: AppLocalizations.of(context).settings,
+
+                                      active: selectedIndex == 5,
+
+                                      onTap: () {
+                                        setState(() {
+                                          selectedIndex = 5;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-
-                            // const Text(
-                            //   "OpzentoHR",
-
-                            //   style: TextStyle(
-                            //     color: Colors.white,
-                            //     fontSize: 24,
-                            //     fontWeight: FontWeight.bold,
-                            //   ),
-                            // ),
-                            const SizedBox(height: 20),
-
-                            _sideBarItem(
-                              context: context,
-                              icon: Icons.dashboard_rounded,
-
-                              title: AppLocalizations.of(context).dashboard,
-
-                              active: selectedIndex == 0,
-
-                              onTap: () {
-                                setState(() {
-                                  selectedIndex = 0;
-                                });
-                              },
-                            ),
-
-                            _sideBarItem(
-                              context: context,
-                              icon: Icons.access_time_filled_rounded,
-
-                              title: AppLocalizations.of(context).attendance,
-
-                              active: selectedIndex == 1,
-
-                              onTap: () {
-                                setState(() {
-                                  selectedIndex = 1;
-                                });
-                              },
-                            ),
-
-                            _sideBarItem(
-                              context: context,
-                              icon: Icons.leave_bags_at_home,
-
-                              title: AppLocalizations.of(context).leaves,
-
-                              active: selectedIndex == 2,
-
-                              onTap: () {
-                                setState(() {
-                                  selectedIndex = 2;
-                                });
-                              },
-                            ),
-
-                            _sideBarItem(
-                              context: context,
-                              icon: Icons.bar_chart_rounded,
-
-                              title: AppLocalizations.of(context).productivity,
-
-                              active: selectedIndex == 3,
-
-                              onTap: () {
-                                setState(() {
-                                  selectedIndex = 3;
-                                });
-                              },
-                            ),
-
-                            _sideBarItem(
-                              context: context,
-                              icon: Icons.settings_rounded,
-
-                              title: AppLocalizations.of(context).settings,
-
-                              active: selectedIndex == 4,
-
-                              onTap: () {
-                                setState(() {
-                                  selectedIndex = 4;
-                                });
-                              },
-                            ),
-
-                            const Spacer(),
 
                             Padding(
                               padding: const EdgeInsets.all(20),
@@ -347,6 +369,7 @@ class DashboardContent extends StatefulWidget {
 
 class _DashboardContentState extends State<DashboardContent> {
   bool _autoCheckInAttempted = false;
+  bool? _lastIsCheckedIn;
 
   @override
   void initState() {
@@ -370,7 +393,11 @@ class _DashboardContentState extends State<DashboardContent> {
     return BlocListener<AttendanceCubit, AttendanceState>(
       listener: (context, state) {
         if (state.status == AttendanceStatus.success) {
-          context.read<AttendanceReportCubit>().fetchReport();
+          // Only fetch report on initial load or when check-in status actually changes
+          if (_lastIsCheckedIn == null || _lastIsCheckedIn != state.isCheckedIn) {
+            _lastIsCheckedIn = state.isCheckedIn;
+            context.read<AttendanceReportCubit>().fetchReport();
+          }
 
           // Trigger auto check-in only once after initial load
           if (!_autoCheckInAttempted) {
@@ -526,74 +553,94 @@ class _DashboardContentState extends State<DashboardContent> {
             const SizedBox(height: 30),
 
             /// GRAPH SECTION
-            GlassCard(
-              padding: const EdgeInsets.all(24),
-              borderRadius: 30,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            BlocBuilder<AttendanceReportCubit, AttendanceReportState>(
+              builder: (context, reportState) {
+                // Calculate dates for the current week (Monday to Sunday)
+                final DateTime now = DateTime.now();
+                final int currentWeekday = now.weekday; // 1 = Monday, 7 = Sunday
+                final DateTime monday = now.subtract(Duration(days: currentWeekday - 1));
 
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                final List<Map<String, dynamic>> weekDays = List.generate(7, (index) {
+                  final dayDate = monday.add(Duration(days: index));
+                  final dateStr = DateFormat('yyyy-MM-dd').format(dayDate);
+                  final dayLabel = DateFormat('E').format(dayDate); // Mon, Tue, etc.
+
+                  // Retrieve productivity percentage from cubit state (default to 0.0)
+                  final percentage = reportState.weeklyProductivity[dateStr] ?? 0.0;
+                  return {
+                    'label': dayLabel,
+                    'percentage': percentage,
+                  };
+                });
+
+                return GlassCard(
+                  padding: const EdgeInsets.all(24),
+                  borderRadius: 30,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
 
                     children: [
-                      Text(
-                        AppLocalizations.of(context).weeklyProductivityTrend,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                        children: [
+                          Text(
+                            AppLocalizations.of(context).weeklyProductivityTrend,
+
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.withOpacity(0.1),
+
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+
+                            child: Text(
+                              "This Week",
+
+                              style: TextStyle(
+                                color: Colors.deepPurple,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
 
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                      const SizedBox(height: 30),
 
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple.withOpacity(0.1),
+                      SizedBox(
+                        height: 250,
 
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
 
-                        child: Text(
-                          "This Week",
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
 
-                          style: TextStyle(
-                            color: Colors.deepPurple,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          children: weekDays.map((day) {
+                            return _graphBar(
+                              context,
+                              day['label'] as String,
+                              (day['percentage'] as num).toDouble(),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 30),
-
-                  SizedBox(
-                    height: 250,
-
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-
-                      children: [
-                        _graphBar(context, "Mon", 80),
-                        _graphBar(context, "Tue", 120),
-                        _graphBar(context, "Wed", 100),
-                        _graphBar(context, "Thu", 170),
-                        _graphBar(context, "Fri", 150),
-                        _graphBar(context, "Sat", 90),
-                        _graphBar(context, "Sun", 60),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
 
             const SizedBox(height: 30),
@@ -918,20 +965,49 @@ Widget _statCard({
   );
 }
 
-Widget _graphBar(BuildContext context, String day, double height) {
+Widget _graphBar(BuildContext context, String day, double percentage) {
+  final double maxHeight = 180;
+  final double barHeight = (percentage / 100.0) * maxHeight;
+  // Ensure a minimum height of 8.0 for visual aesthetics
+  final double displayHeight = barHeight < 8.0 ? 8.0 : barHeight;
+  final bool hasData = percentage > 0;
+
   return Column(
     mainAxisAlignment: MainAxisAlignment.end,
     children: [
+      Text(
+        hasData ? "${percentage.toStringAsFixed(0)}%" : "0%",
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: hasData 
+              ? Colors.deepPurple 
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+        ),
+      ),
+      const SizedBox(height: 8),
       Container(
         width: 42,
-        height: height,
+        height: displayHeight,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Colors.deepPurple, Colors.purpleAccent],
+          gradient: LinearGradient(
+            colors: hasData 
+                ? [Colors.deepPurple, Colors.purpleAccent]
+                : [
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.12),
+                  ],
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
           ),
           borderRadius: BorderRadius.circular(16),
+          boxShadow: hasData ? [
+            BoxShadow(
+              color: Colors.deepPurple.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ] : null,
         ),
       ),
       const SizedBox(height: 10),

@@ -120,6 +120,7 @@ class AppLocalizations {
   String get leaves => _localizedValues[locale.languageCode]!['leaves']!;
   String get productivity => _localizedValues[locale.languageCode]!['productivity']!;
   String get settings => _localizedValues[locale.languageCode]!['settings']!;
+  String get chat => _localizedValues[locale.languageCode]?['chat'] ?? 'Chat';
   String get logout => _localizedValues[locale.languageCode]!['logout']!;
   String get login => _localizedValues[locale.languageCode]!['login']!;
   String get password => _localizedValues[locale.languageCode]!['password']!;
@@ -173,6 +174,7 @@ class AppLocalizations {
       'leaves': 'Leaves',
       'productivity': 'Productivity',
       'settings': 'Settings',
+      'chat': 'Chat',
       'logout': 'Logout',
       'login': 'Login',
       'password': 'Password',
@@ -247,6 +249,7 @@ class AppLocalizations {
       'leaves': 'छुट्टियां',
       'productivity': 'उत्पादकता',
       'settings': 'सेटिंग्स',
+      'chat': 'चैट',
       'logout': 'लॉगआउट',
       'login': 'लॉग इन',
       'password': 'पासवर्ड',
@@ -321,6 +324,7 @@ class AppLocalizations {
       'leaves': 'సెలవలు',
       'productivity': 'ఉత్పాదకత',
       'settings': 'సెట్టింగ్‌లు',
+      'chat': 'చాట్',
       'logout': 'లాగ్‌అవుట్',
       'login': 'లాగిన్',
       'password': 'పాస్‌వర్డ్',

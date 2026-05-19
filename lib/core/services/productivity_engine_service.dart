@@ -30,7 +30,7 @@ class ProductivityEngineService {
 
   bool isIdle = false;
 
-  double productivity = 65;
+  double productivity = 0;
 
   DateTime _lastActivity =
       DateTime.now();
@@ -79,7 +79,7 @@ class ProductivityEngineService {
       totalKeys = await pref.getInt(_keyTotalKeys) ?? 0;
       totalClicks = await pref.getInt(_keyTotalClicks) ?? 0;
       totalMoves = await pref.getInt(_keyTotalMoves) ?? 0;
-      productivity = await pref.getDouble(_keyProductivity) ?? 65.0;
+      productivity = await pref.getDouble(_keyProductivity) ?? 0.0;
     }
   }
 
@@ -188,7 +188,7 @@ if (!currentlyIdle) {
 
         _windowSeconds++;
 
-        if (_windowSeconds >= 10) {
+        if (_windowSeconds >= 30) {
 
           _calculateProductivity();
 
@@ -323,11 +323,11 @@ if (!currentlyIdle) {
     }
 
     /// ENTERPRISE SMOOTHING
-    productivity =
-
-        (productivity * 0.94) +
-
-        (sessionScore * 0.06);
+    if (activeSeconds <= 30 && productivity == 0) {
+      productivity = sessionScore;
+    } else {
+      productivity = (productivity * 0.97) + (sessionScore * 0.03);
+    }
 
     /// LONG ACTIVE BONUS
     if (!isIdle &&
@@ -345,8 +345,8 @@ if (!currentlyIdle) {
     /// SAFE LIMITS
     productivity =
         productivity.clamp(
-      25,
-      98,
+      0.0,
+      100.0,
     );
 
     /// ROUND VALUE
@@ -420,7 +420,7 @@ String get idleTime {
 
     idleSeconds = 0;
 
-    productivity = 65;
+    productivity = 0;
 
     isIdle = false;
 
