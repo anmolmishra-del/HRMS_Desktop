@@ -53,6 +53,7 @@ dependencies:
   local_notifier: ^0.1.6
   web_socket_channel: ^3.0.3
   open_file: ^3.5.11
+  connectivity_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:

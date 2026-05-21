@@ -15,6 +15,8 @@ import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/features/leave/cubit/leave_cubit.dart';
 import 'package:hrms_desktop/features/home/cubit/productivity_cubit.dart';
 import 'package:hrms_desktop/features/chat/cubit/chat_cubit.dart';
+import 'package:hrms_desktop/core/services/internet_service.dart';
+import 'package:hrms_desktop/core/widget/internet_wrapper.dart';
 import 'package:hrms_desktop/routes.dart';
 
 void main() async {
@@ -31,6 +33,9 @@ void main() async {
 
   // Initialize localization before app starts
   await AppLocalization().initialize();
+
+  // Initialize internet connectivity tracking
+  await InternetService.initialize();
 
   const windowOptions = WindowOptions(
     size: Size(1000, 700),
@@ -123,23 +128,25 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
               child: BlocBuilder<ThemeCubit, ThemeState>(
                 builder: (context, themeState) {
-                  return MaterialApp(
-                    navigatorKey: NavigatorService.navigatorKey,
+                  return InternetWrapper(
+                    child: MaterialApp(
+                      navigatorKey: NavigatorService.navigatorKey,
 
-                    debugShowCheckedModeBanner: false,
+                      debugShowCheckedModeBanner: false,
 
-                    theme: AppTheme.lightTheme,
-                    darkTheme: AppTheme.darkTheme,
-                    themeMode: themeState.themeMode,
+                      theme: AppTheme.lightTheme,
+                      darkTheme: AppTheme.darkTheme,
+                      themeMode: themeState.themeMode,
 
-                    // Localization setup
-                    locale: AppLocalization().currentLocale,
-                    supportedLocales: AppLocalization.supportedLocales,
-                    localizationsDelegates: AppLocalization.localizationsDelegates,
+                      // Localization setup
+                      locale: AppLocalization().currentLocale,
+                      supportedLocales: AppLocalization.supportedLocales,
+                      localizationsDelegates: AppLocalization.localizationsDelegates,
 
-                    routes: Routes.getAll(),
+                      routes: Routes.getAll(),
 
-                    home: const SplashScreen(),
+                      home: const SplashScreen(),
+                    ),
                   );
                 },
               ),

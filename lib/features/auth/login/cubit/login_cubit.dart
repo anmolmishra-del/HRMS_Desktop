@@ -140,7 +140,7 @@ Future<void> login({
           "full_name":
               employee['name']?.toString() ?? "",
 
-          "user_id": session.userId,
+          "user_id": empId,
 
           "password": password,
 
