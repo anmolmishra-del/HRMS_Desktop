@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/core/services/api_service.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/network/odoo_service.dart';
@@ -26,143 +27,181 @@ class LoginCubit extends Cubit<LoginState> {
   void toggleRememberMe(bool value) {
     emit(state.copyWith(rememberMe: value));
   }
+final apiService = ApiService();
+Future<void> login({
+  required String usernameErrorMsg,
+  required String passwordErrorMsg,
+}) async {
+  // 1. Validation
+  bool hasError = false;
+  String? usernameError;
+  String? passwordError;
 
-  Future<void> login({
-    required String usernameErrorMsg,
-    required String passwordErrorMsg,
-  }) async {
-    // 1. Validation
-    bool hasError = false;
-    String? usernameError;
-    String? passwordError;
+  if (state.username.trim().isEmpty) {
+    usernameError = usernameErrorMsg;
+    hasError = true;
+  }
 
-    if (state.username.trim().isEmpty) {
-      usernameError = usernameErrorMsg;
-      hasError = true;
-    }
+  if (state.password.trim().isEmpty) {
+    passwordError = passwordErrorMsg;
+    hasError = true;
+  }
 
-    if (state.password.trim().isEmpty) {
-      passwordError = passwordErrorMsg;
-      hasError = true;
-    }
-
-    if (hasError) {
-      emit(state.copyWith(
+  if (hasError) {
+    emit(
+      state.copyWith(
         usernameError: usernameError,
         passwordError: passwordError,
-      ));
-      return;
-    }
+      ),
+    );
+    return;
+  }
 
-    final username = state.username;
-    final password = state.password;
-    debugPrint('--- Login Process Started ---');
-    debugPrint('Input Username: $username');
-    debugPrint('Input Password: $password');
+  final username = state.username;
+  final password = state.password;
 
-    const baseUrl = 'https://test.ftprotech.in/';
-    debugPrint('Using Base URL: $baseUrl');
-    const db = 'pmt_test';
-    debugPrint('Using Database: $db');
-    final odooService = OdooService(baseUrl);
+  debugPrint('--- Login Process Started ---');
 
-    emit(state.copyWith(status: LoginStatus.loading));
+  const baseUrl = 'https://test.ftprotech.in/';
+  const db = 'pmt_test';
+
+  final odooService = OdooService(baseUrl);
+
+  emit(state.copyWith(status: LoginStatus.loading));
+
+  try {
+    // =========================================================
+    // AUTHENTICATE USER
+    // =========================================================
+
+    final session = await odooService.authenticate(
+      db,
+      username,
+      password,
+    );
+
+    debugPrint("LOGIN SUCCESS => USER ID ${session.userId}");
+
+    final prefs = SharedPref();
+
+    await prefs.saveObject('session', session);
+    await prefs.saveString('baseUrl', baseUrl);
+    await prefs.saveObject('port', 7075);
+    await prefs.saveString('db', db);
+    await prefs.saveBool('is_logged_in', true);
+    await prefs.saveBool('rememberMe', state.rememberMe);
+
+    // =========================================================
+    // GET EMPLOYEE DATA
+    // =========================================================
+
+    final empResponse = await odooService.getEmployeeRecordsForUser(
+      session.userId,
+    );
+
+    final empId = empResponse[0]['id']?.toString() ?? '';
+
+    final employee = await odooService.fetchEmployeeDetails(
+      int.parse(empId),
+      session.userId,
+    );
+
+    await prefs.saveObject('employee_data', employee);
+    await prefs.saveObject('user', employee);
+
+    await prefs.saveString(
+      'employee_id',
+      employee['id']?.toString() ?? '',
+    );
+
+    await prefs.saveString(
+      'profile_pic',
+      employee['profile_pic']?.toString() ?? '',
+    );
+
+    await prefs.saveString(
+      'employee_code',
+      employee['employee_code']?.toString() ?? '',
+    );
+
+    // =========================================================
+    // CREATE USER API CALL
+    // =========================================================
 
     try {
-      // 1. Authenticate
-      debugPrint('Method: authenticate(db: $db, user: $username) - Calling...');
-      final session = await odooService.authenticate(db, username, password);
-      debugPrint(
-        'Method: authenticate - Result: Session ID ${session.id}, User ID ${session.userId}',
+      final response = await apiService.post(
+        '/api/data/users',
+        data: {
+          "email":
+              employee['work_email']?.toString() ??
+              employee['email']?.toString() ??
+              "",
+
+          "full_name":
+              employee['name']?.toString() ?? "",
+
+          "user_id": session.userId,
+
+          "password": password,
+
+          "employee_id":
+              employee['employee_code']?.toString() ?? "",
+        },
       );
 
-      final prefs = SharedPref();
-      await prefs.saveObject('session', session);
-      await prefs.saveString('baseUrl', baseUrl);
-      await prefs.saveObject('port', 7075); // Example port value
-      await prefs.saveString('db', db);
-      await prefs.saveBool('is_logged_in', true);
-      await prefs.saveBool('rememberMe', state.rememberMe);
-
-      // 2. Get Employee Data
-      debugPrint(
-        'Method: callKw(hr.employee, search_read) - Fetching employee ID for userId: ${session.userId}',
-      );
-      final empResponse = await odooService.getEmployeeRecordsForUser(
-        session.userId,
-      );
-      debugPrint(
-        'Method: callKw(hr.employee, search_read) - Data Received: $empResponse',
-      );
-
-      final empId = empResponse[0]['id']?.toString() ?? '';
-      debugPrint('Resolved Employee ID: $empId');
-
-      // 3. Get Full Employee Details
-      debugPrint(
-        'Method: callKw(hr.employee, fetch_all_employees_info) - Fetching details for empId: $empId',
-      );
-      final employee = await odooService.fetchEmployeeDetails(
-        int.parse(empId),
-        session.userId,
-      );
-      debugPrint(
-        'Method: callKw(hr.employee, fetch_all_employees_info) - Data Received: $employee',
-      );
-
-      await prefs.saveObject('employee_data', employee);
-      await prefs.saveObject('user', employee); // For compatibility with TokenService
-      await prefs.saveString('employee_id', employee['id']?.toString() ?? '');
-      await prefs.saveString(
-        'profile_pic',
-        employee['profile_pic']?.toString() ?? '',
-      );
-       await prefs.saveString(
-        'employee_code', employee['employee_code']?.toString() ?? '',
-      );
-
-      // 4. Get User Groups
-      debugPrint(
-        'Method: callKw(res.users, search_read) - Checking groups for userId: ${session.userId}',
-      );
-      final isInternal = await odooService.isInternalUser(session.userId);
-      debugPrint('User belongs to Internal User group (96): $isInternal');
-      await prefs.saveBool('isInternalUser', isInternal);
-
-      await prefs.saveString('partner_id', session.partnerId.toString());
-      debugPrint('Partner ID Saved: ${session.partnerId}');
-
-      debugPrint('--- Login Process Success ---');
-      emit(state.copyWith(status: LoginStatus.success));
-    } on OdooSessionExpiredException {
-      debugPrint('--- Login Process Failed: Session Expired ---');
-      emit(
-        state.copyWith(
-          status: LoginStatus.failure,
-          errorMessage: "Session expired. Please log in again.",
-        ),
-      );
-    } on OdooException catch (e) {
-      debugPrint('--- Login Process Failed: Odoo Exception ($e) ---');
-      emit(
-        state.copyWith(
-          status: LoginStatus.failure,
-          errorMessage: "Wrong login or password",
-        ),
-      );
+      debugPrint("CREATE USER SUCCESS => ${response.data}");
     } catch (e) {
-      debugPrint('--- Login Process Failed: Unexpected Error ($e) ---');
-      emit(
-        state.copyWith(
-          status: LoginStatus.failure,
-          errorMessage: "An error occurred: ${e.toString()}",
-        ),
-      );
-    } finally {
-      odooService.close();
-      debugPrint('--- Odoo Client Closed ---');
+      debugPrint("CREATE USER FAILED => $e");
     }
+
+    // =========================================================
+    // CHECK USER GROUP
+    // =========================================================
+
+    final isInternal = await odooService.isInternalUser(
+      session.userId,
+    );
+
+    await prefs.saveBool('isInternalUser', isInternal);
+
+    await prefs.saveString(
+      'partner_id',
+      session.partnerId.toString(),
+    );
+
+    debugPrint('--- Login Process Success ---');
+
+    emit(state.copyWith(status: LoginStatus.success));
+  } on OdooSessionExpiredException {
+    emit(
+      state.copyWith(
+        status: LoginStatus.failure,
+        errorMessage: "Session expired. Please log in again.",
+      ),
+    );
+  } on OdooException catch (e) {
+    debugPrint("ODOO ERROR => $e");
+
+    emit(
+      state.copyWith(
+        status: LoginStatus.failure,
+        errorMessage: "Wrong login or password",
+      ),
+    );
+  } catch (e) {
+    debugPrint("LOGIN ERROR => $e");
+
+    emit(
+      state.copyWith(
+        status: LoginStatus.failure,
+        errorMessage: "An error occurred: ${e.toString()}",
+      ),
+    );
+  } finally {
+    odooService.close();
+    debugPrint('--- Odoo Client Closed ---');
   }
+}
 
   Future<void> checkLoginStatus() async {
     final prefs = SharedPref();

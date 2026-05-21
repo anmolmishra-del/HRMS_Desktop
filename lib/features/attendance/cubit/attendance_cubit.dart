@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:hrms_desktop/core/services/api_service.dart';
 import 'package:hrms_desktop/core/services/app_usage_service.dart';
 import 'package:hrms_desktop/core/services/productivity_engine_service.dart';
 import 'package:http/http.dart' as http;
@@ -96,7 +97,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   Timer? _notificationTimer;
 
   int _notificationCount = 0;
-
+   final apiService = ApiService();
   // =========================================
   // CLEAR MESSAGE
   // =========================================
@@ -884,7 +885,6 @@ void _showIdleWarning() {
 
       final blockedKeywords = [
         "ftprotech",
-
         "bank",
         "sbi",
         "hdfc",
@@ -899,11 +899,12 @@ void _showIdleWarning() {
         "upi",
       ];
 
-      final isBlocked = blockedKeywords.any((word) => title.contains(word));
+      final isBlocked = blockedKeywords.any(
+        (word) => title.toLowerCase().contains(word.toLowerCase()),
+      );
 
       if (isBlocked) {
         print("BLOCKED WINDOW => NO SCREENSHOT");
-
         return;
       }
 
@@ -913,18 +914,16 @@ void _showIdleWarning() {
 
       if (file == null) {
         print("SCREENSHOT FAILED");
-
         return;
       }
 
       print("SCREENSHOT SAVED => ${file.path}");
 
-      // Upload the screenshot to API
       final prefs = SharedPref();
       final employeeData = await prefs.getObject('employee_data');
 
       if (employeeData == null) {
-        print("Employee data not found, skipping upload");
+        print("Employee data not found");
         return;
       }
 
@@ -933,8 +932,11 @@ void _showIdleWarning() {
           employeeData['work_email']?.toString() ??
           employeeData['email']?.toString() ??
           "";
+
       final name = employeeData['name']?.toString() ?? "";
-      final enployeecode = employeeData['employee_code']?.toString() ?? "";
+      final employeeCode =
+          employeeData['employee_code']?.toString() ?? "";
+
       FormData formData = FormData.fromMap({
         "file": await MultipartFile.fromFile(
           file.path,
@@ -943,20 +945,13 @@ void _showIdleWarning() {
         "user_id": employeeId,
         "email": email,
         "name": name,
-        "employee_id": enployeecode,
+        "employee_id": employeeCode,
       });
 
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: "https://suppositionless-geralyn-jovially.ngrok-free.dev",
-          headers: {
-            "accept": "application/json",
-            "ngrok-skip-browser-warning": "true",
-          },
-        ),
+      final response = await apiService.post(
+        '/api/data/upload-photo',
+        data: formData,
       );
-
-      final response = await dio.post("/api/data/upload-photo", data: formData);
 
       print("SCREENSHOT UPLOADED => ${response.statusCode}");
     } on DioException catch (e) {
@@ -967,7 +962,6 @@ void _showIdleWarning() {
       debugPrint("Screenshot error => $e");
     }
   }
-
   // =========================================
   // TICKER
   // =========================================
