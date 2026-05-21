@@ -5,6 +5,7 @@ import 'package:hrms_desktop/core/constants/app_images.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 import 'package:hrms_desktop/features/auth/login/state/login_state.dart';
 import 'package:hrms_desktop/features/main/presentation/main_page.dart';
+import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -16,6 +17,7 @@ class LoginScreen extends StatelessWidget {
       child: BlocListener<LoginCubit, LoginState>(
         listener: (context, state) {
           if (state.status == LoginStatus.success) {
+            context.read<AttendanceCubit>().loadInitialStatus();
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const MainPage()),

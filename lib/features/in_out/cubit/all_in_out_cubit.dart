@@ -17,6 +17,13 @@ class AttendanceReportCubit extends Cubit<AttendanceReportState> {
 
       final List list = res.data["records"];
 
+      print('================ ALL IN-OUT RECORDS FROM BACKEND ================');
+      print('Raw Response List count: ${list.length}');
+      for (var record in list) {
+        print('Record => Check-In: ${record['check_in']}, Check-Out: ${record['check_out']}, Worked Hours: ${record['worked_hours']}, Total Hours: ${record['total_hours']}, Date: ${record['date']}');
+      }
+      print('=================================================================');
+
       final records =
           list.map((e) => AllAttendanceRecord.fromJson(e)).toList();
 

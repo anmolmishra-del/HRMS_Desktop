@@ -45,6 +45,16 @@ class AttendanceReportCubit extends Cubit<AttendanceReportState> {
       );
 
       debugPrint('AttendanceReportCubit: Raw results count=${results.length}');
+      debugPrint('================ ATTENDANCE REPORT RECORDS FROM ODOO ================');
+      for (var record in results) {
+        debugPrint('Record ID: ${record['id']}');
+        debugPrint('  Check-In: ${record['check_in']}');
+        debugPrint('  Check-Out: ${record['check_out']}');
+        debugPrint('  Worked Hours: ${record['worked_hours']}');
+        debugPrint('  Overtime Hours: ${record['overtime_hours']}');
+        debugPrint('  Validated Overtime Hours: ${record['validated_overtime_hours']}');
+      }
+          debugPrint('=====================================================================');
       
       // Fetch dynamic weekly productivity trend only if it hasn't been loaded yet
       Map<String, double> weeklyProd = Map<String, double>.from(state.weeklyProductivity);

@@ -106,6 +106,15 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   }
 
   // =========================================
+  // RESET (ON LOGOUT)
+  // =========================================
+  void reset() {
+    _isInitialized = false;
+    _currentCheckInTime = null;
+    emit(const AttendanceState(status: AttendanceStatus.initial));
+  }
+
+  // =========================================
   // INIT
   // =========================================
 
@@ -1042,6 +1051,17 @@ void _showIdleWarning() {
         'order': 'check_in asc',
       },
     );
+
+    print('================ ODOO TODAY BASE ATTENDANCE RECORDS ================');
+    print('Raw Records: $records');
+    if (records is List) {
+      for (var record in records) {
+        print('Record Check-In: ${record['check_in']}, Check-Out: ${record['check_out']}, Worked Hours: ${record['worked_hours']}');
+      }
+    } else {
+      print('  No records or invalid list returned.');
+    }
+    print('====================================================================');
 
     double total = 0;
 

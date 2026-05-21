@@ -61,6 +61,19 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
       final data = res.data;
 
+      print('================ TODAY ATTENDANCE FROM BACKEND ================');
+      if (data != null && data is Map) {
+        print('First Check-In: ${data["first_check_in"]}');
+        print('Last Check-Out: ${data["last_check_out"]}');
+        print('Total Working Hours: ${data["total_working_hours"]}');
+        print('Break Time: ${data["break_time"]}');
+        print('Tags: ${data["tags"]}');
+        print('Full Response Data: $data');
+      } else {
+        print('  Response data is null or not a Map: $data');
+      }
+      print('================================================================');
+
       emit(
         state.copyWith(
           loading: false,

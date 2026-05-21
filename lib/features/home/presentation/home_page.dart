@@ -225,17 +225,45 @@ class _HomePageState extends State<HomePage> {
 
                               child: Row(
                                 children: [
-                                  CircleAvatar(
-                                    radius: 22,
-
-                                    backgroundColor: Colors.deepPurple.shade200,
-
-                                    child: Icon(
-                                      Icons.person,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimary,
-                                    ),
+                                  BlocBuilder<AttendanceCubit, AttendanceState>(
+                                    builder: (context, attendanceState) {
+                                      Color badgeColor = Colors.red;
+                                      if (attendanceState.isCheckedIn) {
+                                        if (attendanceState.isIdle) {
+                                          badgeColor = Colors.yellow;
+                                        } else {
+                                          badgeColor = Colors.green;
+                                        }
+                                      }
+                                      return Stack(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 22,
+                                            backgroundColor: Colors.deepPurple.shade200,
+                                            child: Icon(
+                                              Icons.person,
+                                              color: Theme.of(context).colorScheme.onPrimary,
+                                            ),
+                                          ),
+                                          Positioned(
+                                            right: 0,
+                                            bottom: 0,
+                                            child: Container(
+                                              width: 14,
+                                              height: 14,
+                                              decoration: BoxDecoration(
+                                                color: badgeColor,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: Theme.of(context).colorScheme.surface,
+                                                  width: 2,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
                                   ),
 
                                   const SizedBox(width: 12),
@@ -311,6 +339,9 @@ class _HomePageState extends State<HomePage> {
                                                 final navigator = Navigator.of(
                                                   context,
                                                 );
+
+                                                // Reset AttendanceCubit state on logout
+                                                context.read<AttendanceCubit>().reset();
 
                                                 await context
                                                     .read<LoginCubit>()
@@ -495,10 +526,6 @@ class _DashboardContentState extends State<DashboardContent> {
 
                   child: BlocBuilder<AttendanceCubit, AttendanceState>(
                     builder: (context, state) {
-                      if (state.status == AttendanceStatus.loading) {
-                        return const ShimmerCard();
-                      }
-
                       return const CheckInOutCard();
                     },
                   ),

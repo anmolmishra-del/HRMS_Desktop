@@ -124,32 +124,32 @@ class CheckInOutCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isCheckedIn ? AppColors.dangerRed : AppColors.successGreen,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                if (state.status == AttendanceStatus.initial || state.status == AttendanceStatus.loading)
+                  const SizedBox(
+                    height: 50,
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                    onPressed: isLoading ? null : () => context.read<AttendanceCubit>().toggleAttendance(),
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : Icon(isCheckedIn ? Icons.logout_rounded : Icons.login_rounded, size: 20),
-                    label: Text(
-                      isLoading
-                          ? (isCheckedIn ? "Checking Out..." : "Checking In...")
-                          : (isCheckedIn ? "Check Out" : "Check In"),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  )
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isCheckedIn ? AppColors.dangerRed : AppColors.successGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: () => context.read<AttendanceCubit>().toggleAttendance(),
+                      icon: Icon(isCheckedIn ? Icons.logout_rounded : Icons.login_rounded, size: 20),
+                      label: Text(
+                        isCheckedIn ? "Check Out" : "Check In",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           );

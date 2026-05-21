@@ -7,6 +7,7 @@ import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/core/utils/shared_pref.dart';
 import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/core/services/auto_checkin_service.dart';
+import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -329,6 +330,7 @@ Future<void> _pickBackgroundImage() async {
                       iconColor: Colors.red,
                       textColor: Colors.red,
                       onTap: () async {
+                        context.read<AttendanceCubit>().reset();
                         await context.read<LoginCubit>().logout();
                         if (context.mounted) {
                           Navigator.pushNamedAndRemoveUntil(
