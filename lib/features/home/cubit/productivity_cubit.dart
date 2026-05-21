@@ -24,7 +24,7 @@ class ProductivityCubit extends Cubit<ProductivityState> {
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl:
-          "https://suppositionless-geralyn-jovially.ngrok-free.dev",
+          "https://124.123.30.75:8001",
       headers: {
         "accept": "application/json",
         "Content-Type": "application/json",
@@ -63,7 +63,7 @@ Future<void> startTracking() async {
   _apiTimer = Timer.periodic(
     const Duration(minutes: 15),
     (_) async {
-      await _sendPerformanceData();
+      await sendPerformanceData();
     },
   );
 }
@@ -98,7 +98,7 @@ Future<void> startTracking() async {
   /// SEND API
   /// =====================================
 
-  Future<void> _sendPerformanceData() async {
+  Future<void> sendPerformanceData() async {
     try {
       final engine = ProductivityEngineService();
 

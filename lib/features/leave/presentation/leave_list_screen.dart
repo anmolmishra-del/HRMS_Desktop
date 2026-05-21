@@ -70,13 +70,13 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
               builder: (context, state) {
                 return RefreshIndicator(
                   onRefresh: () => context.read<LeaveCubit>().fetchLeavesAndTypes(),
-                  color: AppColors.indigo,
+                  color: AppColors.primaryPurple,
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
                       if (state.status == LeaveStatus.loading && state.leaves.isEmpty)
                         const SliverFillRemaining(
-                          child: Center(child: CircularProgressIndicator(color: AppColors.indigo)),
+                          child: Center(child: CircularProgressIndicator(color: AppColors.primaryPurple)),
                         )
                       else if (state.status == LeaveStatus.failure && state.leaves.isEmpty)
                         SliverFillRemaining(
@@ -129,7 +129,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
       padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.indigo, AppColors.brightBlue],
+          colors: [AppColors.primaryPurple, AppColors.violet],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -166,7 +166,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.indigo.withOpacity(0.3),
+            color: AppColors.primaryPurple.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -179,7 +179,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
             context.read<LeaveCubit>().fetchLeavesAndTypes();
           }
         },
-        backgroundColor: AppColors.indigo,
+        backgroundColor: AppColors.primaryPurple,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text("Request Leave", 
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5)
@@ -202,7 +202,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
               BoxShadow(color: Theme.of(context).shadowColor.withOpacity(0.05), blurRadius: 20),
             ],
           ),
-          child: Icon(Icons.event_note_rounded, size: 80, color: AppColors.indigo.withOpacity(0.1)),
+          child: Icon(Icons.event_note_rounded, size: 80, color: AppColors.primaryPurple.withOpacity(0.1)),
         ),
         const SizedBox(height: 24),
         Text("No Leave Records", 

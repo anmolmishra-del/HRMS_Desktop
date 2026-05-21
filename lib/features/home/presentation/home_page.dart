@@ -294,46 +294,37 @@ class _HomePageState extends State<HomePage> {
                                                   ?.toString() ??
                                               "Staff";
                                         }
-
                                         return Row(
                                           children: [
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-
-                                              children: [
-                                                Text(
-                                                  employeeName,
-
-                                                  style: TextStyle(
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.onSurface,
-
-                                                    fontWeight: FontWeight.w600,
-
-                                                    fontSize: 15,
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    employeeName,
+                                                    style: TextStyle(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 15,
+                                                    ),
                                                   ),
-                                                ),
-
-                                                const SizedBox(height: 2),
-
-                                                Text(
-                                                  employeePost,
-
-                                                  style: TextStyle(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface
-                                                        .withOpacity(0.7),
-
-                                                    fontSize: 12,
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    employeePost,
+                                                    style: TextStyle(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withOpacity(0.7),
+                                                      fontSize: 12,
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-
-                                            Spacer(),
                                             IconButton(
                                               onPressed: () async {
                                                 final navigator = Navigator.of(

@@ -30,7 +30,8 @@ class ProductivityEngineService {
 
   bool isIdle = false;
 
-  double productivity = 0;
+  // Productivity starts at 100% by default after check-in and decreases if inactive
+  double productivity = 100.0;
 
   DateTime _lastActivity =
       DateTime.now();
@@ -79,7 +80,8 @@ class ProductivityEngineService {
       totalKeys = await pref.getInt(_keyTotalKeys) ?? 0;
       totalClicks = await pref.getInt(_keyTotalClicks) ?? 0;
       totalMoves = await pref.getInt(_keyTotalMoves) ?? 0;
-      productivity = await pref.getDouble(_keyProductivity) ?? 0.0;
+      // Default loaded productivity to 100% instead of 0% if no prior data is found
+      productivity = await pref.getDouble(_keyProductivity) ?? 100.0;
     }
   }
 
@@ -323,11 +325,8 @@ if (!currentlyIdle) {
     }
 
     /// ENTERPRISE SMOOTHING
-    if (activeSeconds <= 30 && productivity == 0) {
-      productivity = sessionScore;
-    } else {
-      productivity = (productivity * 0.97) + (sessionScore * 0.03);
-    }
+    // Smoothly decrease productivity starting from 100% if session score is low
+    productivity = (productivity * 0.97) + (sessionScore * 0.03);
 
     /// LONG ACTIVE BONUS
     if (!isIdle &&
@@ -343,9 +342,10 @@ if (!currentlyIdle) {
     }
 
     /// SAFE LIMITS
+    // Productivity cannot go below 25 percent
     productivity =
         productivity.clamp(
-      0.0,
+      25.0,
       100.0,
     );
 
@@ -420,7 +420,8 @@ String get idleTime {
 
     idleSeconds = 0;
 
-    productivity = 0;
+    // Reset productivity back to 100% on check-in
+    productivity = 100.0;
 
     isIdle = false;
 

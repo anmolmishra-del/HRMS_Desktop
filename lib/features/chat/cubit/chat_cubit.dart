@@ -45,6 +45,7 @@ class ChatCubit extends Cubit<ChatState> {
       final prefs = SharedPref();
       final baseUrl = await prefs.getString('baseUrl');
       final sessionJson = await prefs.getObject('session');
+      final port=await prefs.getObject('port');
 
       if (baseUrl == null || sessionJson == null) {
         debugPrint('ChatCubit: Missing baseUrl or session data. Cannot init WebSockets.');
@@ -54,7 +55,7 @@ class ChatCubit extends Cubit<ChatState> {
       final uri = Uri.parse(baseUrl.trim());
       final wsScheme = uri.scheme == 'https' ? 'wss' : 'ws';
       final host = uri.host;
-      final wsUrl = '$wsScheme://$host/websocket';
+      final wsUrl = '$wsScheme://$host:${port ?? 7075}/websocket';
       final session = OdooSession.fromJson(sessionJson);
       final sessionId = session.id;
 

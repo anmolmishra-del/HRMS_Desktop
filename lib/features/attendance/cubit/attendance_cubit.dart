@@ -315,7 +315,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           "$idle seconds",
         );
 
-        final bool currentlyIdle = idle >= 60;
+        // Trigger idle state after 15 minutes (900 seconds) of inactivity
+        final bool currentlyIdle = idle >= 900;
 
         /// =====================================
         /// TOTAL COUNTERS
@@ -511,8 +512,10 @@ void _showIdleWarning() {
 
   _sendIdleNotification();
 
+  // Timer triggers every 100 seconds (1m 40s) to send 3 total notifications over a 5-minute period
+  // First notification is sent immediately at 15m, then timer triggers at 16m40s and 18m20s. At 20m, auto checkout happens.
   _notificationTimer =
-      Timer.periodic(const Duration(minutes: 2), (timer) {
+      Timer.periodic(const Duration(seconds: 100), (timer) {
 
     // USER ACTIVE AGAIN => STOP
     if (!_isIdle) {
@@ -653,6 +656,10 @@ void _showIdleWarning() {
         _isTracking = false;
 
         stopRandomScreenshots();
+        
+        // Hit productivity API to send performance data on check-out
+        await ProductivityCubit().sendPerformanceData();
+        
         ProductivityCubit().stopTracking();
         _productivityTimer?.cancel();
 

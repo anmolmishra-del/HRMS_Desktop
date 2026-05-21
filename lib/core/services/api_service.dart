@@ -7,7 +7,7 @@ class ApiService {
   ApiService() {
     dio = Dio(
       BaseOptions(
-        baseUrl: "https://suppositionless-geralyn-jovially.ngrok-free.dev",
+        baseUrl: "http://124.123.30.75:8001/",
        headers: {
     "Content-Type": "application/json",
     "accept": "application/json",
