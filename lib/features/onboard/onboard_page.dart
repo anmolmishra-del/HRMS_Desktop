@@ -36,7 +36,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Align(
               alignment: Alignment.topRight,
               child: TextButton(
-                onPressed: () {},
+                onPressed: _goToMain,
                 child: const Text(
                   "Skip",
                   style: TextStyle(color: Colors.blueGrey),

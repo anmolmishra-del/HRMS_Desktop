@@ -143,19 +143,19 @@ Future<void> _pickBackgroundImage() async {
             icon: Icons.person_rounded,
             children: [
               _buildProfileTile(),
-              const SizedBox(height: 16),
-              _buildSettingTile(
-                title: "Edit Profile",
-                subtitle: "Update your personal information",
-                icon: Icons.edit_rounded,
-                onTap: () {},
-              ),
-              _buildSettingTile(
-                title: "Change Password",
-                subtitle: "Update your account password",
-                icon: Icons.lock_rounded,
-                onTap: () {},
-              ),
+              // const SizedBox(height: 16),
+              // _buildSettingTile(
+              //   title: "Edit Profile",
+              //   subtitle: "Update your personal information",
+              //   icon: Icons.edit_rounded,
+              //   onTap: () {},
+              // ),
+              // _buildSettingTile(
+              //   title: "Change Password",
+              //   subtitle: "Update your account password",
+              //   icon: Icons.lock_rounded,
+              //   onTap: () {},
+              // ),
             ],
           ),
 
@@ -330,7 +330,11 @@ Future<void> _pickBackgroundImage() async {
                       iconColor: Colors.red,
                       textColor: Colors.red,
                       onTap: () async {
-                        context.read<AttendanceCubit>().reset();
+                        final attendanceCubit = context.read<AttendanceCubit>();
+                        if (attendanceCubit.state.isCheckedIn) {
+                          await attendanceCubit.toggleAttendance();
+                        }
+                        attendanceCubit.reset();
                         await context.read<LoginCubit>().logout();
                         if (context.mounted) {
                           Navigator.pushNamedAndRemoveUntil(

@@ -28,6 +28,7 @@ class MainPage extends StatelessWidget {
                 const PayrollScreen(),
                 const AiChatBotPage(),
                 // const ProfileScreen(),
+                
               ],
             ),
           );

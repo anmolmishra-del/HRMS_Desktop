@@ -16,6 +16,7 @@ import 'package:hrms_desktop/features/attendance/cubit/attendance_report_cubit.d
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_state.dart';
 import 'package:hrms_desktop/features/in_out/presentation/in_out_page.dart';
 import 'package:hrms_desktop/features/leave/presentation/leave_list_screen.dart';
+import 'package:hrms_desktop/features/projects/presentation/projects_page.dart';
 import 'package:intl/intl.dart';
 import 'package:hrms_desktop/features/home/presentation/productivity_page.dart';
 import 'package:hrms_desktop/features/home/presentation/settings_page.dart'
@@ -35,7 +36,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
 
-  late final List pages;
+  late final List<Widget> pages;
 
   @override
   void initState() {
@@ -43,13 +44,12 @@ class _HomePageState extends State<HomePage> {
 
     pages = [
       const DashboardContent(),
-
       const AttendancePage(),
       LeaveListScreen(),
       const ProductivityPage(),
       const ChatListPage(),
-
       const settings.SettingsPage(),
+      const ProjectsPage(),
     ];
 
     // CRITICAL: Initialize Chat background polling, WebSockets, and notifications immediately at app launch
@@ -67,6 +67,8 @@ class _HomePageState extends State<HomePage> {
 
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
+          final pageIndex = selectedIndex.clamp(0, pages.length - 1) as int;
+
           return Scaffold(
             backgroundColor: themeState.hasBackground
                 ? Colors.transparent
@@ -200,7 +202,20 @@ class _HomePageState extends State<HomePage> {
                                         });
                                       },
                                     ),
+   _sideBarItem(
+                                      context: context,
+                                      icon: Icons.folder_rounded,
 
+                                      title: 'Projects',
+
+                                      active: selectedIndex == 6,
+
+                                      onTap: () {
+                                        setState(() {
+                                          selectedIndex = 6;
+                                        });
+                                      },
+                                    ),
                                     _sideBarItem(
                                       context: context,
                                       icon: Icons.settings_rounded,
@@ -215,6 +230,7 @@ class _HomePageState extends State<HomePage> {
                                         });
                                       },
                                     ),
+                                   
                                   ],
                                 ),
                               ),
@@ -331,8 +347,13 @@ class _HomePageState extends State<HomePage> {
                                                   context,
                                                 );
 
+                                                final attendanceCubit = context.read<AttendanceCubit>();
+                                                if (attendanceCubit.state.isCheckedIn) {
+                                                  await attendanceCubit.toggleAttendance();
+                                                }
+
                                                 // Reset AttendanceCubit state on logout
-                                                context.read<AttendanceCubit>().reset();
+                                                attendanceCubit.reset();
 
                                                 await context
                                                     .read<LoginCubit>()
@@ -368,7 +389,9 @@ class _HomePageState extends State<HomePage> {
                       ),
 
                       /// PAGE CONTENT
-                      Expanded(child: pages[selectedIndex]),
+                      Expanded(
+                        child: pages[pageIndex],
+                      ),
                     ],
                   ),
                 ],
