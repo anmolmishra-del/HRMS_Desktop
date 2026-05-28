@@ -140,10 +140,10 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          ),
+          // IconButton(
+          //   onPressed: () => Navigator.pop(context),
+          //   icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          // ),
           const Expanded(
             child: Text(
               'My Time Off',

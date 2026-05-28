@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
+import 'package:hrms_desktop/features/projects/cubit/project_tasks_cubit.dart';
 import 'package:local_notifier/local_notifier.dart';
 
 import 'package:hrms_desktop/core/navigation/navigator_service.dart';
@@ -14,6 +15,7 @@ import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/features/leave/cubit/leave_cubit.dart';
 import 'package:hrms_desktop/features/home/cubit/productivity_cubit.dart';
+import 'package:hrms_desktop/features/projects/cubit/projects_cubit.dart';
 import 'package:hrms_desktop/features/chat/cubit/chat_cubit.dart';
 import 'package:hrms_desktop/core/services/internet_service.dart';
 import 'package:hrms_desktop/core/widget/internet_wrapper.dart';
@@ -99,9 +101,25 @@ class _MyAppState extends State<MyApp> with WindowListener {
               providers: [
                 BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()),
                 BlocProvider(
-                  create: (_) =>
-                      AttendanceCubit(NavigatorService.navigatorKey)
-                        ..loadInitialStatus(),
+                  create: (_) => AttendanceCubit(NavigatorService.navigatorKey)..loadInitialStatus(),
+                ),
+                BlocProvider<LoginCubit>(
+                  create: (_) => LoginCubit(),
+                ),
+                BlocProvider(
+                  create: (_) => LeaveCubit(),
+                ),
+                BlocProvider(
+                  create: (_) => ProjectsCubit(),
+                ),
+                BlocProvider(
+                  create: (_) => ProjectTasksCubit(),
+                ),
+                BlocProvider(
+                  create: (_) => ProductivityCubit(),
+                ),
+                BlocProvider(
+                  create: (_) => ChatCubit(),
                 ),
                 BlocProvider<LoginCubit>(create: (_) => LoginCubit()),
                 BlocProvider(create: (_) => LeaveCubit()),
