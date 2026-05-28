@@ -1,33 +1,10 @@
 import 'dart:io';
 
-
 class ScreenshotService {
 
   static Future<File?> captureScreen() async {
 
     try {
-
-      // =========================
-      // DOCUMENT DIRECTORY
-      // =========================
-
-      // final documentsDir =
-      //     await getApplicationDocumentsDirectory();
-
-      // =========================
-      // CREATE SCREENSHOT FOLDER
-      // =========================
-
-      // final screenshotDir = Directory(
-      //   "${documentsDir.path}/HRMS_Screenshots",
-      // );
-
-      // if (!await screenshotDir.exists()) {
-
-      //   await screenshotDir.create(
-      //     recursive: true,
-      //   );
-      // }
 
       // =========================
       // FILE NAME
@@ -39,14 +16,13 @@ class ScreenshotService {
           "${now.millisecondsSinceEpoch}.png";
 
       // =========================
-      // WINDOWS SAFE PATH
+      // TEMP PATH
       // =========================
 
-      // final filePath =
-      //     "${screenshotDir.path}\\$fileName";
+      final tempDir = Directory.systemTemp;
 
-      // TEMP PATH
-      final filePath = fileName;
+      final filePath =
+          "${tempDir.path}\\$fileName";
 
       // =========================
       // WINDOWS
@@ -150,8 +126,7 @@ public class DPI {
 
       if (await file.exists()) {
 
-        print("Full screenshot saved:");
-
+        print("Screenshot saved in temp:");
         print(file.path);
 
         return file;
@@ -164,10 +139,25 @@ public class DPI {
     } catch (e) {
 
       print("Capture error:");
-
       print(e);
 
       return null;
+    }
+  }
+
+  // =========================
+  // DELETE TEMP FILE
+  // =========================
+
+  static Future<void> deleteScreenshot(
+    File file,
+  ) async {
+
+    if (await file.exists()) {
+
+      await file.delete();
+
+      print("Temp screenshot deleted");
     }
   }
 }

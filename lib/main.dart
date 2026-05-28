@@ -22,25 +22,17 @@ import 'package:hrms_desktop/routes.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await localNotifier.setup(
-    appName: 'Opsentra',
-    shortcutPolicy: ShortcutPolicy.requireCreate,
-  );
-
   await windowManager.ensureInitialized();
 
+  // Prevent real close
   await windowManager.setPreventClose(true);
-
-  // Initialize localization before app starts
-  await AppLocalization().initialize();
-
-  // Initialize internet connectivity tracking
-  await InternetService.initialize();
 
   const windowOptions = WindowOptions(
     size: Size(1000, 700),
 
-    minimumSize: Size(800, 600),
+    // FIXED SIZE
+    minimumSize: Size(1000, 700),
+    maximumSize: Size(1000, 700),
 
     center: true,
 
@@ -55,11 +47,13 @@ void main() async {
     await windowManager.show();
 
     await windowManager.focus();
+
+    // Disable resize
+    await windowManager.setResizable(false);
   });
 
   runApp(const MyApp());
 }
-
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -69,13 +63,12 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WindowListener {
-
   @override
   void initState() {
     super.initState();
 
     windowManager.addListener(this);
-    
+
     // Initialize theme only (localization is initialized in main)
     AppTheme().initialize();
 
@@ -91,9 +84,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
   @override
   void onWindowClose() async {
-    await windowManager.hide();
-
-    print("APP HIDDEN");
+    await windowManager.minimize();
   }
 
   @override
@@ -106,24 +97,16 @@ class _MyAppState extends State<MyApp> with WindowListener {
           builder: (context, child) {
             return MultiBlocProvider(
               providers: [
-                BlocProvider<ThemeCubit>(
-                  create: (_) => ThemeCubit(),
-                ),
+                BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()),
                 BlocProvider(
-                  create: (_) => AttendanceCubit(NavigatorService.navigatorKey)..loadInitialStatus(),
+                  create: (_) =>
+                      AttendanceCubit(NavigatorService.navigatorKey)
+                        ..loadInitialStatus(),
                 ),
-                BlocProvider<LoginCubit>(
-                  create: (_) => LoginCubit(),
-                ),
-                BlocProvider(
-                  create: (_) => LeaveCubit(),
-                ),
-                BlocProvider(
-                  create: (_) => ProductivityCubit(),
-                ),
-                BlocProvider(
-                  create: (_) => ChatCubit(),
-                ),
+                BlocProvider<LoginCubit>(create: (_) => LoginCubit()),
+                BlocProvider(create: (_) => LeaveCubit()),
+                BlocProvider(create: (_) => ProductivityCubit()),
+                BlocProvider(create: (_) => ChatCubit()),
               ],
 
               child: BlocBuilder<ThemeCubit, ThemeState>(
@@ -141,7 +124,8 @@ class _MyAppState extends State<MyApp> with WindowListener {
                       // Localization setup
                       locale: AppLocalization().currentLocale,
                       supportedLocales: AppLocalization.supportedLocales,
-                      localizationsDelegates: AppLocalization.localizationsDelegates,
+                      localizationsDelegates:
+                          AppLocalization.localizationsDelegates,
 
                       routes: Routes.getAll(),
 
@@ -157,7 +141,6 @@ class _MyAppState extends State<MyApp> with WindowListener {
     );
   }
 }
-
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -204,14 +187,14 @@ class _SplashScreenState extends State<SplashScreen> {
           height: 180,
 
           child: AnimatedBuilder(
-  animation: AppTheme(),
-  builder: (context, child) {
-    return Image.asset(
-      AppTheme().isDarkMode ? AppImages.logo : AppImages.logoDark,
-      fit: BoxFit.fill,
-    );
-  },
-),
+            animation: AppTheme(),
+            builder: (context, child) {
+              return Image.asset(
+                AppTheme().isDarkMode ? AppImages.logo : AppImages.logoDark,
+                fit: BoxFit.fill,
+              );
+            },
+          ),
         ),
       ),
     );
