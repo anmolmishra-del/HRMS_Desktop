@@ -7,8 +7,8 @@ import 'package:hrms_desktop/features/leave/cubit/leave_cubit.dart';
 import 'package:hrms_desktop/features/leave/cubit/leave_state.dart';
 import 'package:hrms_desktop/features/leave/models/leave_model.dart';
 import 'package:hrms_desktop/features/leave/models/leave_type_model.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/routes.dart';
-
 import 'package:intl/intl.dart';
 
 class LeaveListScreen extends StatefulWidget {
@@ -39,7 +39,6 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
               : Theme.of(context).scaffoldBackgroundColor,
           body: Stack(
             children: [
-              // Background image (preset asset or custom file)
               if (themeState.hasBackground)
                 Positioned.fill(
                   child: themeState.isAssetBackground
@@ -53,13 +52,12 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                         ),
                 ),
-              // Semi-transparent overlay for readability
               if (themeState.hasBackground)
                 Positioned.fill(
                   child: Container(
                     color: themeState.themeMode == ThemeMode.dark
-                        ? Colors.black.withOpacity(0.55)
-                        : Colors.black.withOpacity(0.2),
+                        ? Colors.black.withAlpha(140)
+                        : Colors.black.withAlpha(51),
                   ),
                 ),
               Column(
@@ -67,56 +65,53 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
                   _buildHeader(context),
                   Expanded(
                     child: BlocBuilder<LeaveCubit, LeaveState>(
-              builder: (context, state) {
-                return RefreshIndicator(
-                  onRefresh: () => context.read<LeaveCubit>().fetchLeavesAndTypes(),
-                  color: AppColors.primaryPurple,
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      if (state.status == LeaveStatus.loading && state.leaves.isEmpty)
-                        const SliverFillRemaining(
-                          child: Center(child: CircularProgressIndicator(color: AppColors.primaryPurple)),
-                        )
-                      else if (state.status == LeaveStatus.failure && state.leaves.isEmpty)
-                        SliverFillRemaining(
-                          child: Center(child: Text("Error: ${state.errorMessage}", style: const TextStyle(color: Colors.red))),
-                        )
-                      else ...[
-                        if (state.leaveTypes.isNotEmpty)
-                          SliverToBoxAdapter(
-                            child: _BalanceSummary(leaveTypes: state.leaveTypes),
-                          ),
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
-                          sliver: Builder(
-                            builder: (context) {
-                              final activeLeaves = state.leaves.where((l) => l.state != 'cancel' && l.state != 'refuse').toList();
-                              if (activeLeaves.isEmpty) {
-                                return SliverFillRemaining(hasScrollBody: false, child: _buildEmptyState(context));
-                              }
-                              return SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _LeaveCard(leave: activeLeaves[index]),
-                                  childCount: activeLeaves.length,
+                      builder: (context, state) {
+                        return RefreshIndicator(
+                          onRefresh: () => context.read<LeaveCubit>().fetchLeavesAndTypes(),
+                          color: AppColors.primaryPurple,
+                          child: CustomScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            slivers: [
+                              if (state.status == LeaveStatus.loading && state.leaves.isEmpty)
+                                const SliverFillRemaining(
+                                  child: Center(child: CircularProgressIndicator(color: AppColors.primaryPurple)),
+                                )
+                              else if (state.status == LeaveStatus.failure && state.leaves.isEmpty)
+                                SliverFillRemaining(
+                                  child: Center(child: Text("${AppLocalizations.of(context).error}: ${state.errorMessage}", style: const TextStyle(color: Colors.red))),
+                                )
+                              else ...[
+                                if (state.leaveTypes.isNotEmpty)
+                                  SliverToBoxAdapter(
+                                    child: _BalanceSummary(leaveTypes: state.leaveTypes),
+                                  ),
+                                SliverPadding(
+                                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+                                  sliver: Builder(
+                                    builder: (context) {
+                                      final activeLeaves = state.leaves.where((l) => l.state != 'cancel' && l.state != 'refuse').toList();
+                                      if (activeLeaves.isEmpty) {
+                                        return SliverFillRemaining(hasScrollBody: false, child: _buildEmptyState(context));
+                                      }
+                                      return SliverList(
+                                        delegate: SliverChildBuilderDelegate(
+                                          (context, index) => _LeaveCard(leave: activeLeaves[index]),
+                                          childCount: activeLeaves.length,
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              );
-                            },
+                              ],
+                            ],
                           ),
-                        ),
-                      ],
-                    ],
+                        );
+                      },
+                    ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    
-    
+                ],
+              ),
             ],
-            
           ),
           floatingActionButton: _buildFAB(context),
         );
@@ -140,14 +135,10 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
       ),
       child: Row(
         children: [
-          // IconButton(
-          //   onPressed: () => Navigator.pop(context),
-          //   icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          // ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'My Time Off',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              AppLocalizations.of(context).myTimeOff,
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
           ),
@@ -166,7 +157,7 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.3),
+            color: AppColors.primaryPurple.withAlpha(76),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -181,8 +172,8 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
         },
         backgroundColor: AppColors.primaryPurple,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text("Request Leave", 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5)
+        label: Text(AppLocalizations.of(context).requestLeave, 
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5)
         ),
       ),
     );
@@ -199,19 +190,19 @@ class _LeaveListScreenState extends State<LeaveListScreen> {
             color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: Theme.of(context).shadowColor.withOpacity(0.05), blurRadius: 20),
+              BoxShadow(color: Theme.of(context).shadowColor.withAlpha(13), blurRadius: 20),
             ],
           ),
-          child: Icon(Icons.event_note_rounded, size: 80, color: AppColors.primaryPurple.withOpacity(0.1)),
+          child: Icon(Icons.event_note_rounded, size: 80, color: AppColors.primaryPurple.withAlpha(26)),
         ),
         const SizedBox(height: 24),
-        Text("No Leave Records", 
+        Text(AppLocalizations.of(context).noLeaveRecords, 
           style: TextStyle(fontSize: 20, color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)
         ),
         const SizedBox(height: 12),
-        Text("Your leave history will appear here\nonce you submit your first request.", 
+        Text(AppLocalizations.of(context).leaveHistoryDescription, 
           textAlign: TextAlign.center,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), height: 1.5)
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withAlpha(153), height: 1.5)
         ),
       ],
     );
@@ -228,17 +219,28 @@ class _BalanceSummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(24, 32, 24, 16),
-          child: Text("Leave Balance", 
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+          child: Text(AppLocalizations.of(context).leaveManagement, 
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)
           ),
         ),
-        SizedBox(
-          height: 140,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: MediaQuery.of(context).size.width > 1400
+                  ? 5
+                  : MediaQuery.of(context).size.width > 1000
+                      ? 4
+                      : MediaQuery.of(context).size.width > 700
+                          ? 3
+                          : 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.3,
+            ),
             itemCount: leaveTypes.length,
             itemBuilder: (context, index) {
               final type = leaveTypes[index];
@@ -260,15 +262,13 @@ class _BalanceCard extends StatelessWidget {
     final color = Colors.primaries[(type.name.hashCode).abs() % Colors.primaries.length];
     
     return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 12, bottom: 8, top: 4),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).shadowColor.withOpacity(0.05),
+            color: Theme.of(context).shadowColor.withAlpha(13),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -278,7 +278,7 @@ class _BalanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(type.name, 
-            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface.withAlpha(153), fontWeight: FontWeight.bold),
             maxLines: 1, overflow: TextOverflow.ellipsis,
           ),
           const Spacer(),
@@ -286,18 +286,18 @@ class _BalanceCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(type.remainingLeaves.toStringAsFixed(1), 
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: color)
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 6, left: 4),
+                padding: const EdgeInsets.only(bottom: 4, left: 4),
                 child: Text("/ ${type.maxLeaves.toInt()}", 
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), fontWeight: FontWeight.w500)
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withAlpha(127), fontWeight: FontWeight.w500)
                 ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text("Days Available", style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4))),
+          Text(AppLocalizations.of(context).daysAvailable, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withAlpha(102))),
         ],
       ),
     );
@@ -318,14 +318,14 @@ class _LeaveCard extends StatelessWidget {
     }
   }
 
-  String _getStatusText() {
+  String _getStatusText(BuildContext context) {
     switch (leave.state) {
-      case 'validate': return "Approved";
-      case 'confirm': return "Pending";
-      case 'refuse': return "Refused";
-      case 'cancel': return "Cancelled";
-      case 'draft': return "Draft";
-      default: return leave.state;
+      case 'validate': return AppLocalizations.of(context).approved;
+      case 'confirm': return AppLocalizations.of(context).pending;
+      case 'refuse': return AppLocalizations.of(context).refused;
+      case 'cancel': return AppLocalizations.of(context).cancelled;
+      case 'draft': return AppLocalizations.of(context).draft;
+      default: return leave.state ?? "";
     }
   }
 
@@ -340,7 +340,7 @@ class _LeaveCard extends StatelessWidget {
         color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: Theme.of(context).shadowColor.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5)),
+          BoxShadow(color: Theme.of(context).shadowColor.withAlpha(10), blurRadius: 15, offset: const Offset(0, 5)),
         ],
       ),
       child: ClipRRect(
@@ -368,24 +368,24 @@ class _LeaveCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: Text(leave.holidayStatusId?.name ?? "Leave Request", 
+                              child: Text(leave.holidayStatusId?.name ?? AppLocalizations.of(context).leaveManagement, 
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)
                               ),
                             ),
                           ],
                         ),
                       ),
-                      _StatusBadge(text: _getStatusText(), color: statusColor),
+                      _StatusBadge(text: _getStatusText(context), color: statusColor),
                     ],
                   ),
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_rounded, size: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                      Icon(Icons.calendar_today_rounded, size: 14, color: Theme.of(context).colorScheme.onSurface.withAlpha(127)),
                       const SizedBox(width: 8),
                       Text(
                         "${DateFormat('dd MMM').format(leave.requestDateFrom!)} - ${DateFormat('dd MMM yyyy').format(leave.requestDateTo!)}",
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 13, fontWeight: FontWeight.w500),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withAlpha(153), fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                       const Spacer(),
                       Text(leave.durationDisplay ?? "", 
@@ -396,7 +396,7 @@ class _LeaveCard extends StatelessWidget {
                   if (leave.name != null && leave.name!.isNotEmpty) ...[
                     const Divider(height: 32),
                     Text(leave.name!, 
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 12, height: 1.4),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withAlpha(153), fontSize: 12, height: 1.4),
                       maxLines: 2, overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -414,7 +414,7 @@ class _LeaveCard extends StatelessWidget {
   Widget _buildActions(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant ?? Theme.of(context).dividerColor.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.surfaceVariant ?? Theme.of(context).dividerColor.withAlpha(26),
         border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -425,13 +425,13 @@ class _LeaveCard extends StatelessWidget {
             TextButton.icon(
               onPressed: () => _showDeleteDialog(context),
               icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
-              label: const Text("Delete Draft", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+              label: Text(AppLocalizations.of(context).deleteDraft, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12)),
             )
           else
             TextButton.icon(
               onPressed: () => _showCancelDialog(context),
               icon: const Icon(Icons.cancel_outlined, size: 18, color: Colors.orangeAccent),
-              label: const Text("Cancel Leave", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+              label: Text(AppLocalizations.of(context).cancelLeave, style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12)),
             ),
         ],
       ),
@@ -442,12 +442,12 @@ class _LeaveCard extends StatelessWidget {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: Text("Cancel Request?", style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-      content: Text("Are you sure you want to cancel this leave request?", style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+      title: Text(AppLocalizations.of(context).cancelRequestQuestion, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+      content: Text(AppLocalizations.of(context).cancelRequestConfirmation, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("No")),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context).no)),
         TextButton(onPressed: () { Navigator.pop(ctx); context.read<LeaveCubit>().cancelLeave(leave.id); },
-          child: const Text("Yes, Cancel", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          child: Text(AppLocalizations.of(context).yesCancel, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
         ),
       ],
     ));
@@ -457,12 +457,12 @@ class _LeaveCard extends StatelessWidget {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: Text("Delete Draft?", style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-      content: Text("This draft will be permanently removed.", style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+      title: Text(AppLocalizations.of(context).deleteDraftQuestion, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+      content: Text(AppLocalizations.of(context).deleteDraftConfirmation, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context).cancel)),
         TextButton(onPressed: () { Navigator.pop(ctx); context.read<LeaveCubit>().deleteLeave(leave.id); },
-          child: const Text("Delete", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          child: Text(AppLocalizations.of(context).delete, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
         ),
       ],
     ));
@@ -479,7 +479,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(text, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),

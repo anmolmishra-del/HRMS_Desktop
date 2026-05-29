@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 
 class CompanyCalendarPage extends StatefulWidget {
   const CompanyCalendarPage({super.key});
@@ -58,28 +59,28 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    "Add Event",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    AppLocalizations.of(context).addEvent,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
 
                   TextField(
                     controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: "Event Title",
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).eventTitle,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 15),
 
                   DropdownButtonFormField<String>(
                     initialValue: selectedType,
-                    items: const [
-                      DropdownMenuItem(value: "Event", child: Text("Event")),
+                    items: [
+                      DropdownMenuItem(value: "Event", child: Text(AppLocalizations.of(context).event)),
                       DropdownMenuItem(
                         value: "Holiday",
-                        child: Text("Holiday"),
+                        child: Text(AppLocalizations.of(context).holiday),
                       ),
                     ],
                     onChanged: (value) {
@@ -87,9 +88,9 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
                         selectedType = value!;
                       });
                     },
-                    decoration: const InputDecoration(
-                      labelText: "Type",
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).type,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -109,7 +110,7 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
                           Navigator.pop(context);
                         }
                       },
-                      child: const Text("Save"),
+                      child: Text(AppLocalizations.of(context).save),
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -127,7 +128,7 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
     final filteredEvents = getEventsForSelectedDate();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Company Calendar"), centerTitle: true),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).companyCalendar), centerTitle: true),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAddEventSheet,
         child: const Icon(Icons.add),
@@ -150,7 +151,7 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "Events on ${DateFormat('dd MMM yyyy').format(selectedDate)}",
+                "${AppLocalizations.of(context).eventsOn} ${DateFormat('dd MMM yyyy').format(selectedDate)}",
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -160,10 +161,10 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
           ),
           Expanded(
             child: filteredEvents.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
-                      "No Events",
-                      style: TextStyle(color: Colors.grey),
+                      AppLocalizations.of(context).noEvents,
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   )
                 : ListView.builder(
@@ -180,7 +181,7 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
                           leading: CircleAvatar(
                             backgroundColor: getEventColor(
                               event["type"],
-                            ).withOpacity(0.15),
+                            ).withAlpha(38),
                             child: Icon(
                               event["type"] == "Holiday"
                                   ? Icons.beach_access
@@ -189,7 +190,11 @@ class _CompanyCalendarPageState extends State<CompanyCalendarPage> {
                             ),
                           ),
                           title: Text(event["title"]),
-                          subtitle: Text(event["type"]),
+                          subtitle: Text(
+                            event["type"] == "Holiday" 
+                                ? AppLocalizations.of(context).holiday 
+                                : AppLocalizations.of(context).event
+                          ),
                         ),
                       );
                     },

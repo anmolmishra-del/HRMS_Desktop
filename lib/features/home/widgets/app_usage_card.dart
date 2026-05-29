@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hrms_desktop/core/services/app_usage_service.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 
 class AppUsageCard extends StatelessWidget {
   final AppUsageInfo appData;
@@ -68,7 +69,7 @@ class AppUsageCard extends StatelessWidget {
 
               Expanded(
                 child: Text(
-                  appData.appName,
+                  _getLocalizedAppName(context, appData.appName),
 
                   maxLines: 1,
 
@@ -87,7 +88,7 @@ class AppUsageCard extends StatelessWidget {
           const Spacer(),
 
           Text(
-            "${hours}h ${minutes}m",
+            AppLocalizations.of(context).durationHoursMinutes(hours.toString(), minutes.toString()),
 
             style: TextStyle(
               fontSize: 28,
@@ -101,5 +102,22 @@ class AppUsageCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getLocalizedAppName(BuildContext context, String appName) {
+    switch (appName) {
+      case 'Development':
+        return AppLocalizations.of(context).development;
+      case 'Browser':
+        return AppLocalizations.of(context).browser;
+      case 'Entertainment':
+        return AppLocalizations.of(context).entertainment;
+      case 'Communication':
+        return AppLocalizations.of(context).communication;
+      case 'Productivity':
+        return AppLocalizations.of(context).productivity;
+      default:
+        return appName;
+    }
   }
 }

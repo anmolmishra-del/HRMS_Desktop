@@ -210,13 +210,15 @@ class LoginScreen extends StatelessWidget {
                                 );
                               },
                             ),
-                            TextButton(
-                              onPressed: () {},
-                              child: Text(
-                                "Forgot Password?",
-                                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
-                              ),
-                            ),
+                            // TextButton(
+                            //   onPressed: () {
+                            //     ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text("This feature is coming soon.")));
+                            //   },
+                            //   child: Text(
+                            //     "Forgot Password?",
+                            //     style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
+                            //   ),
+                            // ),
                           ],
                         ),
 

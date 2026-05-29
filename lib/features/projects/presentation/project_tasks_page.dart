@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/core/constants/app_colors.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:intl/intl.dart';
 import '../cubit/project_tasks_cubit.dart';
 import '../cubit/project_tasks_state.dart';
@@ -20,7 +21,6 @@ class ProjectTasksPage extends StatefulWidget {
 }
 
 class _ProjectTasksPageState extends State<ProjectTasksPage> {
-  // Timesheet controllers mapped by task ID
   final Map<int, TextEditingController> _timesheetControllers = {};
   final Map<int, TextEditingController> _timesheetDescControllers = {};
   final Map<int, FocusNode> _timesheetFocusNodes = {};
@@ -58,61 +58,20 @@ class _ProjectTasksPageState extends State<ProjectTasksPage> {
     }
   }
 
-  // Future<void> _addTimesheet(int taskId) async {
-  //   final durationText = _timesheetControllers[taskId]?.text ?? '';
-  //   final duration = double.tryParse(durationText) ?? 0;
-  //   final description = _timesheetDescControllers[taskId]?.text ?? '';
-  //   final date = _timesheetDates[taskId] ?? DateTime.now();
-
-  //   if (duration <= 0 || description.isEmpty) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Please enter valid duration and description'), backgroundColor: Colors.orange),
-  //     );
-  //     return;
-  //   }
-
-  //   final success = await context.read<ProjectTasksCubit>().createTimesheet(
-  //     taskId: taskId,
-  //     projectId: widget.projectId,
-  //     duration: duration,
-  //     description: description,
-  //     date: date,
-  //   );
-
-  //   if (success) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Timesheet added successfully'), backgroundColor: Colors.green),
-  //       );
-  //     }
-  //     _timesheetControllers[taskId]?.clear();
-  //     _timesheetDescControllers[taskId]?.clear();
-  //     setState(() {
-  //       _timesheetDates[taskId] = DateTime.now();
-  //     });
-  //   } else {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Failed to add timesheet'), backgroundColor: AppColors.dangerRed),
-  //       );
-  //     }
-  //   }
-  // }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'No deadline';
+  String _formatDate(BuildContext context, DateTime? date) {
+    if (date == null) return AppLocalizations.of(context).noDeadline;
     return DateFormat('dd MMM yyyy').format(date);
   }
 
-  Widget _buildAssignedUsers(List<int> userIds, List<Map<String, dynamic>> allUsers) {
+  Widget _buildAssignedUsers(BuildContext context, List<int> userIds, List<Map<String, dynamic>> allUsers) {
     if (userIds.isEmpty) {
-      return const Text('No users assigned', style: TextStyle(color: Colors.grey, fontSize: 13));
+      return Text(AppLocalizations.of(context).noUsersAssigned, style: const TextStyle(color: Colors.grey, fontSize: 13));
     }
 
     final assignedUsers = allUsers.where((user) => userIds.contains(user['id'])).toList();
 
     if (assignedUsers.isEmpty) {
-      return const Text('No users assigned', style: TextStyle(color: Colors.grey, fontSize: 13));
+      return Text(AppLocalizations.of(context).noUsersAssigned, style: const TextStyle(color: Colors.grey, fontSize: 13));
     }
 
     return Wrap(
@@ -147,14 +106,14 @@ class _ProjectTasksPageState extends State<ProjectTasksPage> {
     }
   }
 
-  String _getPriorityText(String priority) {
+  String _getPriorityText(BuildContext context, String priority) {
     switch (priority) {
       case '0':
-        return 'Low Priority';
+        return AppLocalizations.of(context).lowPriority;
       case '1':
-        return 'High Priority';
+        return AppLocalizations.of(context).highPriority;
       default:
-        return 'Normal';
+        return AppLocalizations.of(context).normal;
     }
   }
 
@@ -192,7 +151,7 @@ class _ProjectTasksPageState extends State<ProjectTasksPage> {
             color: AppColors.indigo,
             onRefresh: () => context.read<ProjectTasksCubit>().fetchTasksAndUsers(widget.projectId),
             child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(), // Ensures it can be pulled even if the list is short
+              physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
               SliverAppBar(
                 expandedHeight: 100.0,
@@ -240,7 +199,7 @@ class _ProjectTasksPageState extends State<ProjectTasksPage> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search tasks...',
+                      hintText: AppLocalizations.of(context).searchTasks,
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
                       fillColor: isDark ? Colors.grey.shade900 : Colors.white,
@@ -279,7 +238,7 @@ class _ProjectTasksPageState extends State<ProjectTasksPage> {
                         Icon(Icons.task_outlined, size: 64, color: isDark ? Colors.grey.shade700 : Colors.grey.shade400),
                         const SizedBox(height: 16),
                         Text(
-                          _searchQuery.isNotEmpty ? 'No matches found' : 'No tasks in this project',
+                          _searchQuery.isNotEmpty ? AppLocalizations.of(context).noMatchesFound : AppLocalizations.of(context).noTasksInThisProject,
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 18, fontWeight: FontWeight.w500)
                         ),
                       ],
@@ -338,11 +297,11 @@ class _ProjectTasksPageState extends State<ProjectTasksPage> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        _getPriorityText(task.priority),
+                                        _getPriorityText(context, task.priority),
                                         style: TextStyle(color: _getPriorityColor(task.priority), fontSize: 12, fontWeight: FontWeight.w600),
                                       ),
                                     ),
-                                    _buildAssignedUsers(task.userIds, state.users),
+                                    _buildAssignedUsers(context, task.userIds, state.users),
                                   ],
                                 ),
                               ),
@@ -362,19 +321,19 @@ class _ProjectTasksPageState extends State<ProjectTasksPage> {
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          _buildInfoChip(Icons.linear_scale_rounded, 'Status', task.stageName ?? 'New'),
-                                          _buildInfoChip(Icons.timer_outlined, 'Hours', '${task.effectiveHours} / ${task.allocatedHours}'),
+                                          _buildInfoChip(Icons.linear_scale_rounded, AppLocalizations.of(context).status, task.stageName ?? 'New'),
+                                          _buildInfoChip(Icons.timer_outlined, AppLocalizations.of(context).hours, '${task.effectiveHours} / ${task.allocatedHours}'),
                                         ],
                                       ),
                                       const SizedBox(height: 12),
                                       if (task.dateDeadline != null)
-                                        _buildInfoChip(Icons.event_outlined, 'Deadline', _formatDate(DateTime.tryParse(task.dateDeadline!))),
+                                        _buildInfoChip(Icons.event_outlined, AppLocalizations.of(context).deadline, _formatDate(context, DateTime.tryParse(task.dateDeadline!))),
                                       
                                       if (task.description.isNotEmpty && task.description != 'false') ...[
                                         const SizedBox(height: 16),
-                                        const Text(
-                                          'Description',
-                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.indigo),
+                                        Text(
+                                          AppLocalizations.of(context).description,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.indigo),
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
@@ -382,10 +341,6 @@ class _ProjectTasksPageState extends State<ProjectTasksPage> {
                                           style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8), fontSize: 14, height: 1.5),
                                         ),
                                       ],
-                                      
-                                      /* Temporarily removed timesheet feature
-                                      ...
-                                      */
                                     ],
                                   ),
                                 ),

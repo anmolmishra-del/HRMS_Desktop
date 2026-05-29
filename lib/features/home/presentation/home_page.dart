@@ -11,7 +11,6 @@ import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_state.dart';
 import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 import 'package:hrms_desktop/features/home/widgets/check_in_out.dart';
-import 'package:hrms_desktop/core/widget/custom_shimer_card.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_state.dart';
 import 'package:hrms_desktop/features/in_out/presentation/in_out_page.dart';
@@ -206,7 +205,7 @@ class _HomePageState extends State<HomePage> {
                                       context: context,
                                       icon: Icons.folder_rounded,
 
-                                      title: 'Projects',
+                                      title:AppLocalizations.of(context).projects ,
 
                                       active: selectedIndex == 6,
 
@@ -604,7 +603,7 @@ class _DashboardContentState extends State<DashboardContent> {
                 final List<Map<String, dynamic>> weekDays = List.generate(7, (index) {
                   final dayDate = monday.add(Duration(days: index));
                   final dateStr = DateFormat('yyyy-MM-dd').format(dayDate);
-                  final dayLabel = DateFormat('E').format(dayDate); // Mon, Tue, etc.
+                  final dayLabel = DateFormat('E', AppLocalization().currentLanguageCode).format(dayDate); // Localized weekday abbreviation
 
                   // Retrieve productivity percentage from cubit state (default to 0.0)
                   final percentage = reportState.weeklyProductivity[dateStr] ?? 0.0;
@@ -648,7 +647,7 @@ class _DashboardContentState extends State<DashboardContent> {
                             ),
 
                             child: Text(
-                              "This Week",
+                              AppLocalizations.of(context).thisWeek,
 
                               style: TextStyle(
                                 color: Colors.deepPurple,
@@ -702,10 +701,10 @@ class _DashboardContentState extends State<DashboardContent> {
             BlocBuilder<AttendanceReportCubit, AttendanceReportState>(
               builder: (context, state) {
                 if (state.records.isEmpty) {
-                  return const Center(
+                  return  Center(
                     child: Padding(
                       padding: EdgeInsets.all(20),
-                      child: Text("No recent records"),
+                      child: Text(AppLocalizations.of(context).noRecentRecords),
                     ),
                   );
                 }

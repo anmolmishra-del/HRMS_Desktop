@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 
 import '../cubit/productivity_cubit.dart';
 import '../cubit/productivity_state.dart';
@@ -61,13 +62,13 @@ class ProductivityPage extends StatelessWidget {
                       child: MetricCard(
 
                         title:
-                            "Today Score",
+                            AppLocalizations.of(context).todayScore,
 
                         value:
                             "${state.productivityPercent.toStringAsFixed(1)}%",
 
                         subtitle:
-                            "Performance",
+                            AppLocalizations.of(context).performance,
 
                         color:
                             Colors.green,
@@ -82,13 +83,13 @@ class ProductivityPage extends StatelessWidget {
                       child: MetricCard(
 
                         title:
-                            "Focus Time",
+                            AppLocalizations.of(context).focusTime,
 
                         value:
                             state.focusTime,
 
                         subtitle:
-                            "Active Work",
+                            AppLocalizations.of(context).activeWork,
 
                         color:
                             Colors.blue,
@@ -103,13 +104,13 @@ class ProductivityPage extends StatelessWidget {
                       child: MetricCard(
 
                         title:
-                            "Idle Time",
+                            AppLocalizations.of(context).idleTime,
 
                         value:
                             state.idleTime,
 
                         subtitle:
-                            "Inactive",
+                            AppLocalizations.of(context).inactive,
 
                         color:
                             Colors.red,
@@ -133,14 +134,14 @@ class ProductivityPage extends StatelessWidget {
                       child: MetricCard(
 
                         title:
-                            "Keyboard",
+                            AppLocalizations.of(context).keyboard,
 
                         value:
                             state.totalKeys
                                 .toString(),
 
                         subtitle:
-                            "Keystrokes",
+                            AppLocalizations.of(context).keystrokes,
 
                         color:
                             Colors.indigo,
@@ -155,14 +156,14 @@ class ProductivityPage extends StatelessWidget {
                       child: MetricCard(
 
                         title:
-                            "Mouse Clicks",
+                            AppLocalizations.of(context).mouseClicks,
 
                         value:
                             state.totalClicks
                                 .toString(),
 
                         subtitle:
-                            "Clicks",
+                            AppLocalizations.of(context).clicks,
 
                         color:
                             Colors.orange,
@@ -177,14 +178,14 @@ class ProductivityPage extends StatelessWidget {
                       child: MetricCard(
 
                         title:
-                            "Mouse Moves",
+                            AppLocalizations.of(context).mouseMoves,
 
                         value:
                             state.totalMoves
                                 .toString(),
 
                         subtitle:
-                            "Movement",
+                            AppLocalizations.of(context).movement,
 
                         color:
                             Colors.teal,
@@ -202,7 +203,7 @@ class ProductivityPage extends StatelessWidget {
                 /// =====================================
 
                 Text(
-                  "Application Usage",
+                  AppLocalizations.of(context).applicationUsage,
 
                   style: TextStyle(
                     fontSize: 22,

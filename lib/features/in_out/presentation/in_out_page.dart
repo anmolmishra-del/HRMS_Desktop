@@ -6,6 +6,7 @@ import 'package:hrms_desktop/core/widget/glass_card.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_report_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:intl/intl.dart';
 
 /// Main page for displaying the Check-In/Check-Out attendance report.
@@ -66,7 +67,7 @@ class InOutReportPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            "No records found",
+            AppLocalizations.of(context).noRecordsFound,
             style: TextStyle(
               color: themeState.hasBackground
                   ? Colors.white.withOpacity(0.8)
@@ -165,9 +166,9 @@ class _ReportHeader extends StatelessWidget {
                             onPressed: () => Navigator.pop(context),
                             icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
                           ),
-                          const Expanded(
+                           Expanded(
                             child: Text(
-                              "Attendance Report",
+                              AppLocalizations.of(context).attendanceReport,
                               style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center,
                             ),
@@ -180,7 +181,7 @@ class _ReportHeader extends StatelessWidget {
                         children: [
                           Expanded(
                             child: _DateButton(
-                              label: "From",
+                              label: AppLocalizations.of(context).from,
                               date: state.fromDate,
                               onTap: () => _selectDate(context, true, state),
                             ),
@@ -191,7 +192,7 @@ class _ReportHeader extends StatelessWidget {
                           ),
                           Expanded(
                             child: _DateButton(
-                              label: "To",
+                              label: AppLocalizations.of(context).to,
                               date: state.toDate,
                               onTap: () => _selectDate(context, false, state),
                             ),
@@ -326,7 +327,7 @@ class _AttendanceCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          isClosed ? "Completed" : "Still Working",
+                          isClosed ? AppLocalizations.of(context).completed : AppLocalizations.of(context).stillWorking,
                           style: TextStyle(
                             color: isClosed ? AppColors.textSecondary : AppColors.orange,
                             fontSize: 12,
@@ -339,7 +340,7 @@ class _AttendanceCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${displayHours.toStringAsFixed(2)} hrs',
+                        '${displayHours.toStringAsFixed(2)} ${AppLocalizations.of(context).hrs}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -348,7 +349,7 @@ class _AttendanceCard extends StatelessWidget {
                       ),
                       if (overtimeHours > 0)
                         Text(
-                          '+${overtimeHours.toStringAsFixed(2)} OT',
+                          '+${overtimeHours.toStringAsFixed(2)} ${AppLocalizations.of(context).ot}',
                           style: const TextStyle(fontSize: 11, color: AppColors.successGreen, fontWeight: FontWeight.w600),
                         ),
                     ],
@@ -366,7 +367,7 @@ class _AttendanceCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildTimeInfo(
-                        context, "In",
+                        context, AppLocalizations.of(context).inLabel,
                         DateFormat('hh:mm:ss a').format(checkIn),
                         AppColors.blue,
                         subtitle: hasInLoc
@@ -374,7 +375,7 @@ class _AttendanceCard extends StatelessWidget {
                             : null,
                       ),
                       _buildTimeInfo(
-                        context, "Out",
+                        context, AppLocalizations.of(context).outLabel,
                         isClosed ? DateFormat('hh:mm:ss a').format(checkOut) : '--:--',
                         isClosed ? AppColors.dangerRed : AppColors.textSecondary,
                         subtitle: hasOutLoc
@@ -393,7 +394,7 @@ class _AttendanceCard extends StatelessWidget {
                         const Icon(Icons.verified_outlined, size: 14, color: AppColors.successGreen),
                         const SizedBox(width: 6),
                         Text(
-                          'Validated Overtime: ${validatedOT.toStringAsFixed(2)} hrs',
+                          AppLocalizations.of(context).validatedOvertime(validatedOT.toStringAsFixed(2)),
                           style: const TextStyle(fontSize: 12, color: AppColors.successGreen, fontWeight: FontWeight.bold),
                         ),
                       ],

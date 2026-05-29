@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hrms_desktop/core/constants/app_colors.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_cubit.dart';
 import 'package:hrms_desktop/features/attendance/cubit/attendance_state.dart';
 import 'package:hrms_desktop/routes.dart';
@@ -68,7 +69,7 @@ class CheckInOutCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Time", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        Text(AppLocalizations.of(context).time, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                         const SizedBox(height: 2),
                         Text(DateFormat.jm().format(DateTime.now()),
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
@@ -80,7 +81,7 @@ class CheckInOutCard extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text("Date", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                            Text(AppLocalizations.of(context).date, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                             const SizedBox(width: 8),
                             // GestureDetector(
                             //   onTap: () => Navigator.pushNamed(context, Routes.inOutReport),
@@ -89,7 +90,7 @@ class CheckInOutCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text(DateFormat('d MMM yyyy').format(DateTime.now()),
+                        Text(DateFormat('d MMM yyyy', AppLocalization().currentLanguageCode).format(DateTime.now()),
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface)),
                       ],
                     ),
@@ -118,7 +119,7 @@ class CheckInOutCard extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: isCheckedIn ? AppColors.orange : AppColors.successGreen)),
                         const SizedBox(height: 4),
-                        const Text("Working Hours", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        Text(AppLocalizations.of(context).workingHours, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                       ],
                     ),
                   ],
@@ -145,7 +146,7 @@ class CheckInOutCard extends StatelessWidget {
                       onPressed: () => context.read<AttendanceCubit>().toggleAttendance(),
                       icon: Icon(isCheckedIn ? Icons.logout_rounded : Icons.login_rounded, size: 20),
                       label: Text(
-                        isCheckedIn ? "Check Out" : "Check In",
+                        isCheckedIn ? AppLocalizations.of(context).checkOut : AppLocalizations.of(context).checkIn,
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/core/constants/app_colors.dart';
 import 'package:hrms_desktop/features/chat/model/chat_model.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import 'package:file_picker/file_picker.dart';
@@ -38,7 +39,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   void dispose() {
-    // Safely clear the active chat using the stored cubit reference
     _chatCubit.clearActiveChat(widget.channel.id);
     _messageController.dispose();
     _scrollController.dispose();
@@ -117,7 +117,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           Expanded(
             child: BlocConsumer<ChatCubit, ChatState>(
               listener: (context, state) {
-                // Only scroll if we actually received new messages
                 if (state.status == ChatStatus.loaded && state.activeMessages.length != _lastMessageCount) {
                   _lastMessageCount = state.activeMessages.length;
                   _scrollToBottom();
@@ -175,8 +174,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
                 Text(
                   widget.channel.type == ChannelType.chat 
-                      ? (widget.channel.imStatus != null ? widget.channel.imStatus![0].toUpperCase() + widget.channel.imStatus!.substring(1) : 'Offline') 
-                      : '${widget.channel.memberCount} members',
+                      ? (widget.channel.imStatus != null ? widget.channel.imStatus![0].toUpperCase() + widget.channel.imStatus!.substring(1) : AppLocalizations.of(context).offline) 
+                      : '${widget.channel.memberCount} ${AppLocalizations.of(context).members}',
                   style: TextStyle(
                     fontSize: 12, 
                     color: widget.channel.imStatus == 'online' ? Colors.green : Colors.grey
@@ -190,11 +189,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.videocam_rounded, color: AppColors.indigo),
-          onPressed: () => _showFeatureSoon(context, 'Video Call'),
+          onPressed: () => _showFeatureSoon(context, AppLocalizations.of(context).videoCall),
         ),
         IconButton(
           icon: const Icon(Icons.phone_rounded, color: AppColors.indigo, size: 20),
-          onPressed: () => _showFeatureSoon(context, 'Voice Call'),
+          onPressed: () => _showFeatureSoon(context, AppLocalizations.of(context).voiceCall),
         ),
         const SizedBox(width: 8),
       ],
@@ -204,7 +203,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _showFeatureSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$feature feature is coming soon!'),
+        content: Text('$feature ${AppLocalizations.of(context).comingSoon}'),
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.indigo,
         margin: const EdgeInsets.all(16),
@@ -250,7 +249,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: AppColors.indigo.withOpacity(0.1),
+        color: AppColors.indigo.withAlpha(26),
         shape: BoxShape.circle,
       ),
       child: _buildDefaultSmallAvatarContent(),
@@ -264,7 +263,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         children: [
           Icon(Icons.chat_bubble_outline_rounded, size: 64, color: Colors.grey.withOpacity(0.2)),
           const SizedBox(height: 16),
-          const Text('No messages yet. Say hello!', style: TextStyle(color: Colors.grey)),
+          Text(AppLocalizations.of(context).noMessagesYetSayHello, style: const TextStyle(color: Colors.grey)),
         ],
       ),
     );
@@ -287,9 +286,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.indigo.withOpacity(0.05),
+              color: AppColors.indigo.withAlpha(13),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.indigo.withOpacity(0.1)),
+              border: Border.all(color: AppColors.indigo.withAlpha(26)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -334,7 +333,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             child: TextField(
               controller: _messageController,
               decoration: InputDecoration(
-                hintText: 'Type a message...',
+                hintText: AppLocalizations.of(context).typeYourMessage,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
                 filled: true,
                 fillColor: Colors.grey.withOpacity(0.05),
@@ -548,11 +547,11 @@ class _MessageBubble extends StatelessWidget {
       final cubit = context.read<ChatCubit>();
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Downloading ${att.name}...'), duration: const Duration(seconds: 1)),
+        SnackBar(content: Text('${AppLocalizations.of(context).downloading} ${att.name}...'), duration: const Duration(seconds: 1)),
       );
 
       final bytes = await cubit.downloadAttachment(att.id);
-      if (bytes == null) throw 'Could not download file';
+      if (bytes == null) throw AppLocalizations.of(context).couldNotDownloadFile;
 
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/${att.name}');
@@ -561,7 +560,7 @@ class _MessageBubble extends StatelessWidget {
       await OpenFile.open(file.path);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('${AppLocalizations.of(context).error}: $e'), backgroundColor: Colors.red),
       );
     }
   }

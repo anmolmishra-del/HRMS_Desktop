@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 
 class ProductivityHeader extends StatelessWidget {
   final DateTime selectedDate;
@@ -28,7 +29,7 @@ class ProductivityHeader extends StatelessWidget {
 
           children: [
             Text(
-              "Productivity 📊",
+              AppLocalizations.of(context).productivityHeaderTitle,
 
               style: TextStyle(
                 fontSize: 30,
@@ -43,13 +44,13 @@ class ProductivityHeader extends StatelessWidget {
             const SizedBox(height: 6),
 
             Text(
-              "Track attendance and productivity",
+              AppLocalizations.of(context).trackAttendanceAndProductivity,
 
               style: TextStyle(
                 fontSize: 16,
 
                 color: colors.onSurface
-                    .withOpacity(0.6),
+                    .withAlpha(153),
               ),
             ),
           ],

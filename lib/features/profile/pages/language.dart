@@ -34,9 +34,9 @@ class _LanguageSelectionScreenState extends State<LanguagePage> {
               const SizedBox(height: 30),
 
               /// Title
-              const Text(
-                "Select Your Language",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              Text(
+                AppLocalizations.of(context).selectYourLanguage,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
               ),
 
               const SizedBox(height: 30),
@@ -134,7 +134,7 @@ class _LanguageSelectionScreenState extends State<LanguagePage> {
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("$selectedLanguage language selected"),
+                        content: Text("$selectedLanguage ${AppLocalizations.of(context).languageSelected}"),
                       ),
                     );
                     
@@ -148,9 +148,9 @@ class _LanguageSelectionScreenState extends State<LanguagePage> {
                     ),
                     backgroundColor: const Color(0xFF5B8BD9),
                   ),
-                  child: const Text(
-                    "Save",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  child: Text(
+                    AppLocalizations.of(context).save,
+                    style: const TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 
 class LeavePage extends StatefulWidget {
   const LeavePage({super.key});
@@ -52,7 +53,7 @@ class _LeavePageState extends State<LeavePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
@@ -73,9 +74,9 @@ class _LeavePageState extends State<LeavePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Apply Leave",
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context).applyLeave,
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -96,8 +97,8 @@ class _LeavePageState extends State<LeavePage> {
                           });
                         },
                         decoration: InputDecoration(
-                          labelText: "Leave Type",
-                          border: OutlineInputBorder(),
+                          labelText: AppLocalizations.of(context).leaveType,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 15),
@@ -106,9 +107,9 @@ class _LeavePageState extends State<LeavePage> {
                       TextField(
                         readOnly: true,
                         decoration: InputDecoration(
-                          labelText: "From Date",
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
+                          labelText: AppLocalizations.of(context).fromDate,
+                          border: const OutlineInputBorder(),
+                          suffixIcon: const Icon(Icons.calendar_today),
                         ),
                         controller: TextEditingController(
                           text: fromDate == null
@@ -133,9 +134,9 @@ class _LeavePageState extends State<LeavePage> {
                       TextField(
                         readOnly: true,
                         decoration: InputDecoration(
-                          labelText: "To Date",
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
+                          labelText: AppLocalizations.of(context).toDate,
+                          border: const OutlineInputBorder(),
+                          suffixIcon: const Icon(Icons.calendar_today),
                         ),
                         controller: TextEditingController(
                           text: toDate == null
@@ -156,7 +157,7 @@ class _LeavePageState extends State<LeavePage> {
                       ),
                       const SizedBox(height: 15),
 
-                      Text("Total Days: $days"),
+                      Text("${AppLocalizations.of(context).totalDays}: $days"),
                       const SizedBox(height: 15),
 
                       /// Reason
@@ -164,8 +165,8 @@ class _LeavePageState extends State<LeavePage> {
                         controller: reasonController,
                         maxLines: 3,
                         decoration: InputDecoration(
-                          labelText: "Reason",
-                          border: OutlineInputBorder(),
+                          labelText: AppLocalizations.of(context).reason,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -179,7 +180,7 @@ class _LeavePageState extends State<LeavePage> {
                               Navigator.pop(context);
                             }
                           },
-                          child: const Text("Submit"),
+                          child: Text(AppLocalizations.of(context).submit),
                         ),
                       ),
                     ],
@@ -196,7 +197,7 @@ class _LeavePageState extends State<LeavePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Leave Management"), centerTitle: true),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).leaveManagement), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -226,7 +227,7 @@ class _LeavePageState extends State<LeavePage> {
                         ),
                         const Spacer(),
                         Text(
-                          "${leaveBalance[key]} Days",
+                          "${leaveBalance[key]} ${AppLocalizations.of(context).leaves}",
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -247,7 +248,7 @@ class _LeavePageState extends State<LeavePage> {
               height: 45,
               child: ElevatedButton(
                 onPressed: _openApplyLeaveSheet,
-                child: const Text("Apply Leave"),
+                child: Text(AppLocalizations.of(context).applyLeave),
               ),
             ),
 
@@ -268,7 +269,7 @@ class _LeavePageState extends State<LeavePage> {
                       subtitle: Text(
                         "${DateFormat('dd MMM').format(leave["from"])} - "
                         "${DateFormat('dd MMM').format(leave["to"])} "
-                        "(${leave["days"]} days)",
+                        "(${leave["days"]} ${AppLocalizations.of(context).leaves.toLowerCase()})",
                       ),
                       trailing: Text(
                         leave["status"],

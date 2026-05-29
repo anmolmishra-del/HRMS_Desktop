@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms_desktop/core/constants/app_colors.dart';
+import 'package:hrms_desktop/core/theme/theme_cubit.dart';
 import 'package:hrms_desktop/features/chat/model/chat_model.dart';
 import 'package:hrms_desktop/features/chat/presentation/chat_details.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 import 'package:intl/intl.dart';  
 import '../../../core/theme/app_theme.dart';
 import '../cubit/chat_cubit.dart';
@@ -73,7 +75,7 @@ class _ChatListPageState extends State<ChatListPage> with SingleTickerProviderSt
                     child: Row(
                       children: [
                         Text(
-                          'Start New Chat',
+                          AppLocalizations.of(context).startNewChat,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -96,7 +98,7 @@ class _ChatListPageState extends State<ChatListPage> with SingleTickerProviderSt
                         setModalState(() => searchQuery = value);
                       },
                       decoration: InputDecoration(
-                        hintText: 'Search people...',
+                        hintText: AppLocalizations.of(context).searchPeople,
                         prefixIcon: const Icon(Icons.search_rounded, color: AppColors.indigo),
                         filled: true,
                         fillColor: Colors.grey.withOpacity(0.05),
@@ -118,7 +120,7 @@ class _ChatListPageState extends State<ChatListPage> with SingleTickerProviderSt
                                 Icon(Icons.person_search_rounded, size: 64, color: Colors.grey.shade200),
                                 const SizedBox(height: 16),
                                 Text(
-                                  searchQuery.isEmpty ? 'No contacts found' : 'No matches for "$searchQuery"',
+                                  searchQuery.isEmpty ? AppLocalizations.of(context).noContactsFound : '${AppLocalizations.of(context).noMatchesFor} "$searchQuery"',
                                   style: TextStyle(color: Colors.grey.shade400),
                                 ),
                               ],
@@ -141,7 +143,7 @@ class _ChatListPageState extends State<ChatListPage> with SingleTickerProviderSt
                                 subtitle: Text(
                                   (contact['function'] is String ? contact['function'] : null) ??
                                       (contact['email'] is String ? contact['email'] : null) ??
-                                      'Employee',
+                                      AppLocalizations.of(context).employee,
                                   style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                                 ),
                                 onTap: () async {
@@ -203,43 +205,48 @@ class _ChatListPageState extends State<ChatListPage> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: isDark ? Theme.of(context).appBarTheme.backgroundColor : Colors.white,
-        title: Text(
-          'Messages',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
+    return BlocBuilder<ThemeCubit,ThemeState>(
+      builder: (context, themeState) => 
+     Scaffold(
+      backgroundColor: themeState.hasBackground
+                  ? Colors.transparent
+                  : Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: isDark ? Theme.of(context).appBarTheme.backgroundColor : Colors.white,
+          title: Text(
+            AppLocalizations.of(context).messages,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+            ),
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            labelColor: AppColors.indigo,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: AppColors.indigo,
+            indicatorWeight: 3,
+            indicatorSize: TabBarIndicatorSize.label,
+            tabs: [
+              Tab(text: AppLocalizations.of(context).channels),
+              Tab(text: AppLocalizations.of(context).directMessages),
+            ],
           ),
         ),
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          labelColor: AppColors.indigo,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppColors.indigo,
-          indicatorWeight: 3,
-          indicatorSize: TabBarIndicatorSize.label,
-          tabs: const [
-            Tab(text: 'Channels'),
-            Tab(text: 'Direct Messages'),
+          children: [
+            _buildChannelList(ChannelType.channel),
+            _buildChannelList(ChannelType.chat),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildChannelList(ChannelType.channel),
-          _buildChannelList(ChannelType.chat),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showContactPicker,
-        backgroundColor: AppColors.indigo,
-        child: const Icon(Icons.add_comment_rounded, color: Colors.white),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _showContactPicker,
+          backgroundColor: AppColors.indigo,
+          child: const Icon(Icons.add_comment_rounded, color: Colors.white),
+        ),
       ),
     );
   }
@@ -300,7 +307,7 @@ class _ChatListPageState extends State<ChatListPage> with SingleTickerProviderSt
           ),
           const SizedBox(height: 16),
           Text(
-            type == ChannelType.channel ? 'No Channels Found' : 'No Direct Messages',
+            type == ChannelType.channel ? AppLocalizations.of(context).noChannelsFound : AppLocalizations.of(context).noDirectMessages,
             style: TextStyle(color: Colors.grey.withOpacity(0.6), fontSize: 16),
           ),
         ],
@@ -399,7 +406,7 @@ class _ChannelTile extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            channel.lastMessage.isEmpty ? 'No messages yet' : channel.lastMessage,
+                            channel.lastMessage.isEmpty ? AppLocalizations.of(context).noMessagesYet : channel.lastMessage,
                             style: TextStyle(
                               fontSize: 13,
                               color: channel.unreadCount > 0 ? Colors.black87 : Colors.grey.shade600,

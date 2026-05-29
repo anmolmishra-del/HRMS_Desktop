@@ -19,7 +19,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _notificationsEnabled = true;
   bool _autoCheckInEnabled = false;
   String _selectedLanguage = 'English';
 
@@ -53,18 +52,19 @@ class _SettingsPageState extends State<SettingsPage> {
     });
     await SharedPref().saveBool('auto_check_in_enabled', value);
   }
-Future<void> _pickBackgroundImage() async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles(
-    type: FileType.image,
-    allowMultiple: false,
-  );
 
-  if (result != null && result.files.single.path != null) {
-    context.read<ThemeCubit>().setBackgroundImage(
-      result.files.single.path!,
+  Future<void> _pickBackgroundImage() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
     );
+
+    if (result != null && result.files.single.path != null) {
+      context.read<ThemeCubit>().setBackgroundImage(
+        result.files.single.path!,
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +86,7 @@ Future<void> _pickBackgroundImage() async {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Settings ⚙️",
+                        "${AppLocalizations.of(context).settings} ⚙️",
                         style: TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.bold,
@@ -94,9 +94,9 @@ Future<void> _pickBackgroundImage() async {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        "Customize your experience",
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      Text(
+                        AppLocalizations.of(context).customizeYourExperience,
+                        style: const TextStyle(color: Colors.grey, fontSize: 16),
                       ),
                     ],
                   ),
@@ -107,13 +107,13 @@ Future<void> _pickBackgroundImage() async {
                     ),
                     decoration: BoxDecoration(
                       color: isGlass 
-                        ? (isDark ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.3))
+                        ? (isDark ? Colors.black.withAlpha(76) : Colors.white.withAlpha(76))
                         : Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(18),
-                      border: isGlass ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
+                      border: isGlass ? Border.all(color: Colors.white.withAlpha(51)) : null,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withAlpha(13),
                           blurRadius: 10,
                         ),
                       ],
@@ -135,229 +135,200 @@ Future<void> _pickBackgroundImage() async {
                 ],
               ),
 
-          const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-          /// PROFILE SECTION
-          _buildSectionCard(
-            title: "Profile Settings",
-            icon: Icons.person_rounded,
-            children: [
-              _buildProfileTile(),
-              // const SizedBox(height: 16),
-              // _buildSettingTile(
-              //   title: "Edit Profile",
-              //   subtitle: "Update your personal information",
-              //   icon: Icons.edit_rounded,
-              //   onTap: () {},
-              // ),
-              // _buildSettingTile(
-              //   title: "Change Password",
-              //   subtitle: "Update your account password",
-              //   icon: Icons.lock_rounded,
-              //   onTap: () {},
-              // ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          /// APP PREFERENCES
-          _buildSectionCard(
-            title: "App Preferences",
-            icon: Icons.app_settings_alt_rounded,
-            children: [
-              // _buildSwitchTile(
-              //   title: "Push Notifications",
-              //   subtitle: "Receive notifications for check-in/out reminders",
-              //   icon: Icons.notifications_rounded,
-              //   value: _notificationsEnabled,
-              //   onChanged: (value) => setState(() => _notificationsEnabled = value),
-              // ),
-              const SizedBox(height: 16),
-              _buildSwitchTile(
-                title: "Dark Mode",
-                subtitle: "Switch to dark theme",
-                icon: Icons.dark_mode_rounded,
-                value: themeState.themeMode == ThemeMode.dark,
-                onChanged: (value) {
-                  context.read<ThemeCubit>().toggleTheme(value);
-                },
+              /// PROFILE SECTION
+              _buildSectionCard(
+                title: AppLocalizations.of(context).profileSettings,
+                icon: Icons.person_rounded,
+                children: [
+                  _buildProfileTile(),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildDropdownTile(
-                title: "Language",
-                subtitle: "Choose your preferred language",
-                icon: Icons.language_rounded,
-                value: _selectedLanguage,
-                items: ['English', 'Hindi', 'Telugu'],
-                onChanged: (value) async {
-                  if (value != null) {
-                    final localeMap = {
-                      'English': const Locale('en', 'US'),
-                      'Hindi': const Locale('hi', 'IN'),
-                      'Telugu': const Locale('te', 'IN'),
-                    };
-                    await AppLocalization().setLocale(localeMap[value]!);
-                    setState(() => _selectedLanguage = value);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildThemeSelector(themeState),
-            ],
-          ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          /// WORK SETTINGS
-          _buildSectionCard(
-            title: "Work Settings",
-            icon: Icons.work_rounded,
-            children: [
-              // _buildSwitchTile(
-              //   title: "Biometric Authentication",
-              //   subtitle: "Use fingerprint/face ID for check-in/out",
-              //   icon: Icons.fingerprint_rounded,
-              //   value: _biometricEnabled,
-              //   onChanged: (value) => setState(() => _biometricEnabled = value),
-              // ),
-              const SizedBox(height: 16),
-              _buildSwitchTile(
-                title: "Auto Check-in",
-                subtitle: "Automatically check-in when opening the app",
-                icon: Icons.auto_mode_rounded,
-                value: _autoCheckInEnabled,
-                onChanged: _toggleAutoCheckIn,
+              /// APP PREFERENCES
+              _buildSectionCard(
+                title: AppLocalizations.of(context).appPreferences,
+                icon: Icons.app_settings_alt_rounded,
+                children: [
+                  _buildSwitchTile(
+                    title: AppLocalizations.of(context).darkMode,
+                    subtitle: AppLocalizations.of(context).switchToDarkTheme,
+                    icon: Icons.dark_mode_rounded,
+                    value: themeState.themeMode == ThemeMode.dark,
+                    onChanged: (value) {
+                      context.read<ThemeCubit>().toggleTheme(value);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDropdownTile(
+                    title: AppLocalizations.of(context).language,
+                    subtitle: AppLocalizations.of(context).chooseYourPreferredLanguage,
+                    icon: Icons.language_rounded,
+                    value: _selectedLanguage,
+                    items: const ['English', 'Hindi', 'Telugu'],
+                    onChanged: (value) async {
+                      if (value != null) {
+                        final localeMap = {
+                          'English': const Locale('en'),
+                          'Hindi': const Locale('hi'),
+                          'Telugu': const Locale('te'),
+                        };
+                        await AppLocalization().setLocale(localeMap[value]!);
+                        setState(() => _selectedLanguage = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildThemeSelector(themeState),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildSettingTile(
-                title: "Working Hours",
-                subtitle: "Set your default working hours",
-                icon: Icons.schedule_rounded,
-                onTap: () {},
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          /// DATA & PRIVACY
-          _buildSectionCard(
-            title: "Data & Privacy",
-            icon: Icons.security_rounded,
-            children: [
-              _buildSettingTile(
-                title: "Export Data",
-                subtitle: "Download your attendance and productivity data",
-                icon: Icons.download_rounded,
-                onTap: () {},
+              /// WORK SETTINGS
+              _buildSectionCard(
+                title: AppLocalizations.of(context).workSettings,
+                icon: Icons.work_rounded,
+                children: [
+                  _buildSwitchTile(
+                    title: AppLocalizations.of(context).autoCheckIn,
+                    subtitle: AppLocalizations.of(context).automaticallyCheckIn,
+                    icon: Icons.auto_mode_rounded,
+                    value: _autoCheckInEnabled,
+                    onChanged: _toggleAutoCheckIn,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSettingTile(
+                    title: AppLocalizations.of(context).workingHours,
+                    subtitle: AppLocalizations.of(context).setDefaultWorkingHours,
+                    icon: Icons.schedule_rounded,
+                    onTap: () {},
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildSettingTile(
-                title: "Privacy Policy",
-                subtitle: "Read our privacy policy",
-                icon: Icons.privacy_tip_rounded,
-                onTap: () {},
-              ),
-              const SizedBox(height: 16),
-              _buildSettingTile(
-                title: "Terms of Service",
-                subtitle: "Read our terms and conditions",
-                icon: Icons.description_rounded,
-                onTap: () {},
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          /// SUPPORT
-          _buildSectionCard(
-            title: "Support & Help",
-            icon: Icons.help_rounded,
-            children: [
-              _buildSettingTile(
-                title: "Help Center",
-                subtitle: "Find answers to common questions",
-                icon: Icons.help_center_rounded,
-                onTap: () {},
+              /// DATA & PRIVACY
+              _buildSectionCard(
+                title: AppLocalizations.of(context).dataAndPrivacy,
+                icon: Icons.security_rounded,
+                children: [
+                  _buildSettingTile(
+                    title: AppLocalizations.of(context).exportData,
+                    subtitle: AppLocalizations.of(context).downloadAttendanceData,
+                    icon: Icons.download_rounded,
+                    onTap: () {},
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSettingTile(
+                    title: AppLocalizations.of(context).privacyPolicy,
+                    subtitle: AppLocalizations.of(context).readPrivacyPolicy,
+                    icon: Icons.privacy_tip_rounded,
+                    onTap: () {},
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSettingTile(
+                    title: AppLocalizations.of(context).termsOfService,
+                    subtitle: AppLocalizations.of(context).readTermsConditions,
+                    icon: Icons.description_rounded,
+                    onTap: () {},
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildSettingTile(
-                title: "Contact Support",
-                subtitle: "Get in touch with our support team",
-                icon: Icons.support_agent_rounded,
-                onTap: () {},
-              ),
-              const SizedBox(height: 16),
-              _buildSettingTile(
-                title: "Report a Bug",
-                subtitle: "Help us improve by reporting issues",
-                icon: Icons.bug_report_rounded,
-                onTap: () {},
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-          /// LOGOUT SECTION
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: isGlass ? 10 : 0, sigmaY: isGlass ? 10 : 0),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: isGlass 
-                    ? (isDark ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.3))
-                    : Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: isGlass ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 14,
+              /// SUPPORT
+              _buildSectionCard(
+                title: AppLocalizations.of(context).supportAndHelp,
+                icon: Icons.help_rounded,
+                children: [
+                  _buildSettingTile(
+                    title: AppLocalizations.of(context).helpCenter,
+                    subtitle: AppLocalizations.of(context).findAnswers,
+                    icon: Icons.help_center_rounded,
+                    onTap: () {},
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSettingTile(
+                    title: AppLocalizations.of(context).contactSupport,
+                    subtitle: AppLocalizations.of(context).getInTouch,
+                    icon: Icons.support_agent_rounded,
+                    onTap: () {},
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSettingTile(
+                    title: AppLocalizations.of(context).reportABug,
+                    subtitle: AppLocalizations.of(context).helpUsImprove,
+                    icon: Icons.bug_report_rounded,
+                    onTap: () {},
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              /// LOGOUT SECTION
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: isGlass ? 10 : 0, sigmaY: isGlass ? 10 : 0),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: isGlass 
+                        ? (isDark ? Colors.black.withAlpha(76) : Colors.white.withAlpha(76))
+                        : Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: isGlass ? Border.all(color: Colors.white.withAlpha(51)) : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(10),
+                          blurRadius: 14,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _buildSettingTile(
-                      title: "Logout",
-                      subtitle: "Sign out from your account",
-                      icon: Icons.logout_rounded,
-                      iconColor: Colors.red,
-                      textColor: Colors.red,
-                      onTap: () async {
-                        final attendanceCubit = context.read<AttendanceCubit>();
-                        if (attendanceCubit.state.isCheckedIn) {
-                          await attendanceCubit.toggleAttendance();
-                        }
-                        attendanceCubit.reset();
-                        await context.read<LoginCubit>().logout();
-                        if (context.mounted) {
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/login',
-                            (route) => false,
-                          );
-                        }
-                      },
+                    child: Column(
+                      children: [
+                        _buildSettingTile(
+                          title: AppLocalizations.of(context).logout,
+                          subtitle: AppLocalizations.of(context).signOutFromAccount,
+                          icon: Icons.logout_rounded,
+                          iconColor: Colors.red,
+                          textColor: Colors.red,
+                          onTap: () async {
+                            final attendanceCubit = context.read<AttendanceCubit>();
+                            if (attendanceCubit.state.isCheckedIn) {
+                              await attendanceCubit.toggleAttendance();
+                            }
+                            attendanceCubit.reset();
+                            await context.read<LoginCubit>().logout();
+                            if (context.mounted) {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/login',
+                                (route) => false,
+                              );
+                            }
+                          },
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
 
-            const SizedBox(height: 40),
-          ],
-        ),
-      );
-    },
-  );
-}
+              const SizedBox(height: 40),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildSectionCard({
     required String title,
@@ -376,52 +347,53 @@ Future<void> _pickBackgroundImage() async {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: isGlass 
-              ? (isDark ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.3))
+              ? (isDark ? Colors.black.withAlpha(76) : Colors.white.withAlpha(76))
               : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
-            border: isGlass ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
+            border: isGlass ? Border.all(color: Colors.white.withAlpha(51)) : null,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withAlpha(10),
                 blurRadius: 14,
               ),
             ],
           ),
           child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.deepPurple,
-                  size: 20,
-                ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurple.withAlpha(26),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: Colors.deepPurple,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
+              const SizedBox(height: 20),
+              ...children,
             ],
           ),
-          const SizedBox(height: 20),
-          ...children,
-        ],
+        ),
       ),
-    ),
-     ) );
-}
+    );
+  }
 
   Widget _buildProfileTile() {
     return FutureBuilder(
@@ -441,7 +413,7 @@ Future<void> _pickBackgroundImage() async {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.05),
+            color: Colors.grey.withAlpha(13),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -519,7 +491,7 @@ Future<void> _pickBackgroundImage() async {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (iconColor ?? Colors.deepPurple).withOpacity(0.1),
+                color: (iconColor ?? Colors.deepPurple).withAlpha(26),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -574,7 +546,7 @@ Future<void> _pickBackgroundImage() async {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.deepPurple.withOpacity(0.1),
+            color: Colors.deepPurple.withAlpha(26),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -629,7 +601,7 @@ Future<void> _pickBackgroundImage() async {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.deepPurple.withOpacity(0.1),
+            color: Colors.deepPurple.withAlpha(26),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -665,7 +637,7 @@ Future<void> _pickBackgroundImage() async {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withAlpha(26),
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButton<String>(
@@ -702,12 +674,12 @@ Future<void> _pickBackgroundImage() async {
     ];
 
     final presetLabels = {
-      PresetBackground.none:      'None',
-      PresetBackground.nature:    'Nature',
-      PresetBackground.ocean:     'Ocean',
-      PresetBackground.mountain:  'Mountain',
-      PresetBackground.city:      'City',
-      PresetBackground.abstract_: 'Abstract',
+      PresetBackground.none:      AppLocalizations.of(context).none,
+      PresetBackground.nature:    AppLocalizations.of(context).nature,
+      PresetBackground.ocean:     AppLocalizations.of(context).ocean,
+      PresetBackground.mountain:  AppLocalizations.of(context).mountain,
+      PresetBackground.city:      AppLocalizations.of(context).city,
+      PresetBackground.abstract_: AppLocalizations.of(context).abstract_,
     };
 
     final presetColors = {
@@ -743,7 +715,7 @@ Future<void> _pickBackgroundImage() async {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.deepPurple.withOpacity(0.1),
+                color: Colors.deepPurple.withAlpha(26),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.wallpaper_rounded, color: Colors.deepPurple, size: 20),
@@ -753,7 +725,7 @@ Future<void> _pickBackgroundImage() async {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Background Theme",
+                  AppLocalizations.of(context).backgroundTheme,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -762,10 +734,10 @@ Future<void> _pickBackgroundImage() async {
                 ),
                 Text(
                   hasCustom
-                      ? "Custom photo is active"
+                      ? AppLocalizations.of(context).customPhotoIsActive
                       : (activePreset == PresetBackground.none || activePreset == null)
-                          ? "Choose a preset or add your photo"
-                          : "${presetLabels[activePreset]} preset active",
+                          ? AppLocalizations.of(context).choosePresetOrAddPhoto
+                          : "${presetLabels[activePreset]} ${AppLocalizations.of(context).presetActive}",
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
@@ -775,7 +747,7 @@ Future<void> _pickBackgroundImage() async {
 
         const SizedBox(height: 16),
 
-        // ── Preset tiles row ──────────────────────────────────
+        // Preset tiles row
         SizedBox(
           height: 90,
           child: ListView.builder(
@@ -813,7 +785,7 @@ Future<void> _pickBackgroundImage() async {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: (presetColors[p] ?? Colors.deepPurple).withOpacity(0.4),
+                              color: (presetColors[p] ?? Colors.deepPurple).withAlpha(102),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -834,7 +806,7 @@ Future<void> _pickBackgroundImage() async {
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: p == PresetBackground.none
-                                ? Theme.of(context).colorScheme.onSurface.withOpacity(0.7)
+                                ? Theme.of(context).colorScheme.onSurface.withAlpha(178)
                                 : Colors.white,
                             shadows: p != PresetBackground.none
                                 ? [const Shadow(color: Colors.black38, blurRadius: 4)]
@@ -874,7 +846,7 @@ Future<void> _pickBackgroundImage() async {
 
         const SizedBox(height: 14),
 
-        // ── Custom photo row ──────────────────────────────────
+        // Custom photo row
         Row(
           children: [
             // Preview thumbnail
@@ -902,12 +874,12 @@ Future<void> _pickBackgroundImage() async {
                     border: Border.all(
                       color: hasCustom
                           ? Colors.deepPurple
-                          : Colors.deepPurple.withOpacity(0.35),
+                          : Colors.deepPurple.withAlpha(89),
                       width: hasCustom ? 2 : 1.5,
                     ),
                     color: hasCustom
-                        ? Colors.deepPurple.withOpacity(0.08)
-                        : Colors.deepPurple.withOpacity(0.04),
+                        ? Colors.deepPurple.withAlpha(20)
+                        : Colors.deepPurple.withAlpha(10),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -921,7 +893,7 @@ Future<void> _pickBackgroundImage() async {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        hasCustom ? "Change Photo" : "Add Custom Photo",
+                        hasCustom ? AppLocalizations.of(context).changePhoto : AppLocalizations.of(context).addCustomPhoto,
                         style: const TextStyle(
                           color: Colors.deepPurple,
                           fontWeight: FontWeight.w600,
@@ -943,15 +915,15 @@ Future<void> _pickBackgroundImage() async {
                   height: 58,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.withOpacity(0.4), width: 1.5),
-                    color: Colors.red.withOpacity(0.05),
+                    border: Border.all(color: Colors.red.withAlpha(102), width: 1.5),
+                    color: Colors.red.withAlpha(13),
                   ),
-                  child: const Column(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22),
-                      SizedBox(height: 2),
-                      Text("Remove", style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.w600)),
+                      const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 22),
+                      const SizedBox(height: 2),
+                      Text(AppLocalizations.of(context).remove, style: const TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),

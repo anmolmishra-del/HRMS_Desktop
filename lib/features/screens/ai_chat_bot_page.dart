@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrms_desktop/core/localization/app_localization.dart';
 
 class AiChatBotPage extends StatefulWidget {
   const AiChatBotPage({super.key});
@@ -86,7 +87,7 @@ class _AiChatBotPageState extends State<AiChatBotPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("AI HR Assistant"), centerTitle: true),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).aiHrAssistant), centerTitle: true),
       body: Column(
         children: [
           Expanded(
@@ -107,9 +108,9 @@ class _AiChatBotPageState extends State<AiChatBotPage> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: "Type your message...",
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context).typeYourMessage,
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     onSubmitted: (_) => sendMessage(),
