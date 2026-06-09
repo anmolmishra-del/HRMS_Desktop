@@ -62,8 +62,8 @@ Future<void> login({
 
   debugPrint('--- Login Process Started ---');
 
-  const baseUrl = 'https://test.ftprotech.in/';
-  const db = 'pmt_test';
+  const baseUrl = 'https://ftprotech.in/';
+  const db = 'ftprotech';
 
   final odooService = OdooService(baseUrl);
 

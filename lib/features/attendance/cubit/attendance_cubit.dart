@@ -812,7 +812,8 @@ void _showIdleWarning() {
 
     // FIX: Capture random screenshot between 15 and 30 minutes as requested
     /// RANDOM 15-30 MINUTES
-    final randomSeconds = Random().nextInt(15 * 60 + 1) + 15 * 60;
+    // final randomSeconds = Random().nextInt(15 * 60 + 1) + 15 * 60;
+    final randomSeconds = Random().nextInt(16) + 15;
 
     print(
       "Next screenshot in "
@@ -875,94 +876,105 @@ void _showIdleWarning() {
 
   // =========================================
   // CAPTURE LOGIC
+
   // =========================================
+Future<void> captureAndUpload() async {
+  try {
+    final title = getActiveWindowTitle();
 
-  Future<void> captureAndUpload() async {
-    try {
-      final title = getActiveWindowTitle();
+    print("ACTIVE WINDOW => $title");
 
-      print("ACTIVE WINDOW => $title");
+    // Normalize title for comparison
+    final normalizedTitle = title
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9.]'), ' ');
 
-      final blockedKeywords = [
-        "ftprotech",
-        "bank",
-        "sbi",
-        "hdfc",
-        "icici",
-        "axis bank",
-        "kotak",
-        "paytm",
-        "phonepe",
-        "gpay",
-        "google pay",
-        "netbanking",
-        "upi",
-      ];
+    // Get blocked keywords from API
+    final keysResponse = await apiService.get('/api/data/keys');
 
-      final isBlocked = blockedKeywords.any(
-        (word) => title.toLowerCase().contains(word.toLowerCase()),
-      );
+    final List<dynamic> keysData =
+        (keysResponse.data as List<dynamic>? ?? []);
 
-      if (isBlocked) {
-        print("BLOCKED WINDOW => NO SCREENSHOT");
-        return;
+    final List<String> blockedKeywords = keysData
+        .map((e) => (e['key'] ?? '').toString().trim().toLowerCase())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+
+    print("BLOCKED KEYWORDS => $blockedKeywords");
+
+    String? matchedKeyword;
+
+    for (final keyword in blockedKeywords) {
+      if (normalizedTitle.contains(keyword)) {
+        matchedKeyword = keyword;
+        break;
       }
-
-      print("TAKING SCREENSHOT...");
-
-      final file = await ScreenshotService.captureScreen();
-
-      if (file == null) {
-        print("SCREENSHOT FAILED");
-        return;
-      }
-
-      print("SCREENSHOT SAVED => ${file.path}");
-
-      final prefs = SharedPref();
-      final employeeData = await prefs.getObject('employee_data');
-
-      if (employeeData == null) {
-        print("Employee data not found");
-        return;
-      }
-
-      final employeeId = employeeData['id']?.toString() ?? "";
-      final email =
-          employeeData['work_email']?.toString() ??
-          employeeData['email']?.toString() ??
-          "";
-
-      final name = employeeData['name']?.toString() ?? "";
-      final employeeCode =
-          employeeData['employee_code']?.toString() ?? "";
-
-      FormData formData = FormData.fromMap({
-        "file": await MultipartFile.fromFile(
-          file.path,
-          filename: file.path.split("\\").last,
-        ),
-        "user_id": employeeId,
-        "email": email,
-        "name": name,
-        "employee_id": employeeCode,
-      });
-
-      final response = await apiService.post(
-        '/api/data/upload-photo',
-        data: formData,
-      );
-
-      print("SCREENSHOT UPLOADED => ${response.statusCode}");
-    } on DioException catch (e) {
-      debugPrint("Screenshot upload DioException => ${e.message}");
-      debugPrint("Response status => ${e.response?.statusCode}");
-      debugPrint("Response data => ${e.response?.data}");
-    } catch (e) {
-      debugPrint("Screenshot error => $e");
     }
+
+    if (matchedKeyword != null) {
+      print(
+        "BLOCKED WINDOW => Matched keyword: $matchedKeyword",
+      );
+      return;
+    }
+
+    print("TAKING SCREENSHOT...");
+
+    final file = await ScreenshotService.captureScreen();
+
+    if (file == null) {
+      print("SCREENSHOT FAILED");
+      return;
+    }
+
+    print("SCREENSHOT SAVED => ${file.path}");
+
+    final prefs = SharedPref();
+    final employeeData = await prefs.getObject('employee_data');
+
+    if (employeeData == null) {
+      print("Employee data not found");
+      return;
+    }
+
+    final employeeId = employeeData['id']?.toString() ?? "";
+
+    final email =
+        employeeData['work_email']?.toString() ??
+        employeeData['email']?.toString() ??
+        "";
+
+    final name = employeeData['name']?.toString() ?? "";
+
+    final employeeCode =
+        employeeData['employee_code']?.toString() ?? "";
+
+    final formData = FormData.fromMap({
+      "file": await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split("\\").last,
+      ),
+      "user_id": employeeId,
+      "email": email,
+      "name": name,
+      "employee_id": employeeCode,
+    });
+
+    final response = await apiService.post(
+      '/api/data/upload-photo',
+      data: formData,
+    );
+
+    print("SCREENSHOT UPLOADED => ${response.statusCode}");
+  } on DioException catch (e) {
+    debugPrint("Screenshot upload DioException => ${e.message}");
+    debugPrint("Response status => ${e.response?.statusCode}");
+    debugPrint("Response data => ${e.response?.data}");
+  } catch (e) {
+    debugPrint("Screenshot error => $e");
   }
-  // =========================================
+}  // =========================================
   // TICKER
   // =========================================
   void _startTicker() {
