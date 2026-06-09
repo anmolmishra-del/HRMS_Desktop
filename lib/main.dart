@@ -4,6 +4,7 @@ import 'package:hrms_desktop/features/auth/login/cubit/login_cubit.dart';
 import 'package:hrms_desktop/features/projects/cubit/project_tasks_cubit.dart';
 
 import 'package:hrms_desktop/core/navigation/navigator_service.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -53,7 +54,10 @@ void main() async {
     // Disable resize
     await windowManager.setResizable(false);
   });
-
+  await localNotifier.setup(
+    appName: 'Opzento Desktop',
+    shortcutPolicy: ShortcutPolicy.requireCreate,
+  );
   runApp(const MyApp());
 }
 

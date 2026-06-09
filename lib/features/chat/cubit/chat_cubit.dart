@@ -53,7 +53,9 @@ class ChatCubit extends Cubit<ChatState> {
       }
 
       final uri = Uri.parse(baseUrl.trim());
-      final wsScheme = uri.scheme == 'https' ? 'wss' : 'ws';
+      final wsScheme = uri.scheme == 'https' 
+      //? 'wss' :
+       'ws';
       final host = uri.host;
       final wsUrl = '$wsScheme://$host:${port ?? 7075}/websocket';
       final session = OdooSession.fromJson(sessionJson);

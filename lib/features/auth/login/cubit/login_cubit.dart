@@ -86,7 +86,7 @@ Future<void> login({
 
     await prefs.saveObject('session', session);
     await prefs.saveString('baseUrl', baseUrl);
-    await prefs.saveObject('port', 7075);
+    await prefs.saveObject('port', 8072);
     await prefs.saveString('db', db);
     await prefs.saveBool('is_logged_in', true);
     await prefs.saveBool('rememberMe', state.rememberMe);

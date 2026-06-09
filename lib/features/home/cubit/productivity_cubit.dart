@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hrms_desktop/core/services/api_service.dart';
 
 import 'package:hrms_desktop/core/services/app_usage_service.dart';
 import 'package:hrms_desktop/core/services/productivity_engine_service.dart';
@@ -21,17 +22,6 @@ class ProductivityCubit extends Cubit<ProductivityState> {
 
   Timer? _apiTimer;
 
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl:
-          "https://124.123.30.75:8001",
-      headers: {
-        "accept": "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true",
-      },
-    ),
-  );
 
   /// =====================================
   /// START LIVE TRACKING
@@ -97,60 +87,56 @@ Future<void> startTracking() async {
   /// =====================================
   /// SEND API
   /// =====================================
+Future<void> sendPerformanceData() async {
+  try {
+    final engine = ProductivityEngineService();
 
-  Future<void> sendPerformanceData() async {
-    try {
-      final engine = ProductivityEngineService();
+    final prefs = SharedPref();
 
-      final prefs = SharedPref();
+    final isLoggedIn = await prefs.getBool('is_logged_in') ?? false;
+    final employeeData = await prefs.getObject('employee_data');
 
-      final isLoggedIn = await prefs.getBool('is_logged_in') ?? false;
-      final employeeData = await prefs.getObject('employee_data');
-
-      if (!isLoggedIn || employeeData == null) {
-        return;
-      }
-
-      print("CALLING PERFORMANCE API");
-
-      final userId = employeeData['id'] ?? 0;
-
-      final body = {
-        "user_id": userId,
-
-        "performance_percentage":
-            engine.productivity,
-
-"idle_time_seconds":
-    int.tryParse(
-      engine.idleTime.replaceAll('m', '').trim(),
-    ) ?? 0,
-
-"focus_time_seconds":
-    int.tryParse(
-      engine.focusTime.replaceAll('m', '').trim(),
-    ) ?? 0,
-
-        "recorded_at":
-            DateTime.now().toUtc().toIso8601String(),
-      };
-
-      print("PERFORMANCE API BODY => $body");
-
-      final response = await _dio.post(
-        "/api/data/performance",
-        data: body,
-      );
-
-      print(
-        "PERFORMANCE API SUCCESS => "
-        "${response.statusCode}",
-      );
-    } catch (e) {
-      print("PERFORMANCE API ERROR => $e");
+    if (!isLoggedIn || employeeData == null) {
+      return;
     }
-  }
 
+    print("CALLING PERFORMANCE API");
+
+    final userId = employeeData['id'] ?? 0;
+
+    final body = {
+      "user_id": userId,
+      "performance_percentage": engine.productivity,
+      "idle_time_seconds":
+          int.tryParse(
+            engine.idleTime.replaceAll('m', '').trim(),
+          ) ??
+          0,
+      "focus_time_seconds":
+          int.tryParse(
+            engine.focusTime.replaceAll('m', '').trim(),
+          ) ??
+          0,
+      "recorded_at": DateTime.now().toUtc().toIso8601String(),
+    };
+
+    print("PERFORMANCE API BODY => $body");
+
+    final apiService = ApiService();
+
+    final response = await apiService.post(
+      '/api/data/performance',
+      data: body,
+    );
+    print("PERFORMANCE API RESPONSE => ${response}");
+
+    if (isClosed) return;
+
+    print("PERFORMANCE API SUCCESS => $response");
+  } catch (e) {
+    print("PERFORMANCE API ERROR => $e");
+  }
+}
   /// =====================================
   /// STOP
   /// =====================================
