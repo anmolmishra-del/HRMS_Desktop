@@ -39,14 +39,25 @@ class CheckInOutCard extends StatelessWidget {
           context.read<AttendanceCubit>().clearMessages();
         }
       },
-      child: BlocBuilder<AttendanceCubit, AttendanceState>(
+         child: BlocBuilder<AttendanceCubit, AttendanceState>(
         builder: (context, state) {
           final isCheckedIn = state.isCheckedIn;
           final todayHoursStr = state.todayHours;
           final isLoading = state.status == AttendanceStatus.loading;
-          double workedHours = double.tryParse(todayHoursStr) ?? 0.0;
+          double workedHours = 0.0;
+          if (todayHoursStr.contains(':')) {
+            final parts = todayHoursStr.split(':');
+            if (parts.length == 2) {
+              final h = double.tryParse(parts[0]) ?? 0.0;
+              final m = double.tryParse(parts[1]) ?? 0.0;
+              workedHours = h + (m / 60.0);
+            }
+          } else {
+            workedHours = double.tryParse(todayHoursStr) ?? 0.0;
+          }
           double progress = workedHours / 8.0;
           if (progress > 1.0) progress = 1.0;
+
 
           return Container(
             padding: const EdgeInsets.all(20),
