@@ -42,4 +42,32 @@ class LoginState {
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is LoginState &&
+        other.username == username &&
+        other.password == password &&
+        other.usernameError == usernameError &&
+        other.passwordError == passwordError &&
+        other.obscurePassword == obscurePassword &&
+        other.rememberMe == rememberMe &&
+        other.status == status &&
+        other.errorMessage == errorMessage;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      username,
+      password,
+      usernameError,
+      passwordError,
+      obscurePassword,
+      rememberMe,
+      status,
+      errorMessage,
+    );
+  }
 }

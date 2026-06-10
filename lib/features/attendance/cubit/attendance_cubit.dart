@@ -794,6 +794,7 @@ void _showIdleWarning() {
   }
 
   void _scheduleNextScreenshot() {
+    
     if (!_isTracking) {
       return;
     }

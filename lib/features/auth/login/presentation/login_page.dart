@@ -15,6 +15,10 @@ class LoginScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => LoginCubit(),
       child: BlocListener<LoginCubit, LoginState>(
+        listenWhen: (previous, current) {
+          return previous.status != current.status ||
+              previous.errorMessage != current.errorMessage;
+        },
         listener: (context, state) {
           if (state.status == LoginStatus.success) {
             context.read<AttendanceCubit>().loadInitialStatus();

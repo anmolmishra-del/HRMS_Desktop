@@ -125,10 +125,6 @@ class _MyAppState extends State<MyApp> with WindowListener {
                 BlocProvider(
                   create: (_) => ChatCubit(),
                 ),
-                BlocProvider<LoginCubit>(create: (_) => LoginCubit()),
-                BlocProvider(create: (_) => LeaveCubit()),
-                BlocProvider(create: (_) => ProductivityCubit()),
-                BlocProvider(create: (_) => ChatCubit()),
               ],
 
               child: BlocBuilder<ThemeCubit, ThemeState>(
