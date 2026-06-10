@@ -813,8 +813,8 @@ void _showIdleWarning() {
 
     // FIX: Capture random screenshot between 15 and 30 minutes as requested
     /// RANDOM 15-30 MINUTES
-    // final randomSeconds = Random().nextInt(15 * 60 + 1) + 15 * 60;
-    final randomSeconds = Random().nextInt(16) + 15;
+    final randomSeconds = Random().nextInt(15 * 60 + 1) + 15 * 60;
+   // final randomSeconds = Random().nextInt(16) + 15;
 
     print(
       "Next screenshot in "
